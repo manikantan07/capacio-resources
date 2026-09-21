@@ -1,0 +1,12 @@
+# .NET
+server/**/bin/
+server/**/obj/
+server/DeliveryHub.Api/appsettings.Production.json
+
+# Node / Vite
+client/node_modules/
+client/dist/
+client/.env.local
+
+# OS
+.DS_Store

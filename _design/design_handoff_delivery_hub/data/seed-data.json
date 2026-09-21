@@ -1,0 +1,365 @@
+{
+  "today": "2026-09-01",
+  "note": "Seed fixtures from the HTML design prototype. `today` is pinned so the date ranges stay meaningful; production uses the real current date.",
+  "people": [
+    {
+      "id": "p0",
+      "name": "Sagar",
+      "skills": "React, SEO, speed",
+      "initials": "S",
+      "color": "#2478D8",
+      "status": "Active",
+      "role": "Frontend Engineer",
+      "email": "sagar@applab.qa",
+      "phone": "",
+      "location": "Doha, Qatar",
+      "type": "Full-time",
+      "joined": "",
+      "hours": "40",
+      "notes": ""
+    },
+    {
+      "id": "p1",
+      "name": "Safeela",
+      "skills": "React, HTML",
+      "initials": "S",
+      "color": "#00A86C",
+      "status": "Active",
+      "role": "Frontend Engineer",
+      "email": "safeela@applab.qa",
+      "phone": "",
+      "location": "Doha, Qatar",
+      "type": "Full-time",
+      "joined": "",
+      "hours": "40",
+      "notes": ""
+    },
+    {
+      "id": "p2",
+      "name": "Divya",
+      "skills": "React, Next.js",
+      "initials": "D",
+      "color": "#E4661C",
+      "status": "Active",
+      "role": "Frontend Engineer",
+      "email": "divya@applab.qa",
+      "phone": "",
+      "location": "Doha, Qatar",
+      "type": "Full-time",
+      "joined": "",
+      "hours": "40",
+      "notes": ""
+    },
+    {
+      "id": "p3",
+      "name": "Revathy",
+      "skills": "React",
+      "initials": "R",
+      "color": "#6B3FC4",
+      "status": "Active",
+      "role": "Frontend Engineer",
+      "email": "revathy@applab.qa",
+      "phone": "",
+      "location": "Doha, Qatar",
+      "type": "Full-time",
+      "joined": "",
+      "hours": "40",
+      "notes": ""
+    },
+    {
+      "id": "p4",
+      "name": "Arun KR",
+      "skills": "React, Drupal",
+      "initials": "AK",
+      "color": "#0E7C86",
+      "status": "Active",
+      "role": "Frontend Engineer",
+      "email": "arun@applab.qa",
+      "phone": "",
+      "location": "Doha, Qatar",
+      "type": "Full-time",
+      "joined": "",
+      "hours": "40",
+      "notes": ""
+    },
+    {
+      "id": "p5",
+      "name": "Nihal",
+      "skills": "React, HTML/CSS",
+      "initials": "N",
+      "color": "#C2185B",
+      "status": "Active",
+      "role": "Frontend Engineer",
+      "email": "nihal@applab.qa",
+      "phone": "",
+      "location": "Doha, Qatar",
+      "type": "Full-time",
+      "joined": "",
+      "hours": "40",
+      "notes": ""
+    },
+    {
+      "id": "p6",
+      "name": "Mani",
+      "skills": "API integration, React, SEO, style",
+      "initials": "M",
+      "color": "#B8860B",
+      "status": "Active",
+      "role": "Frontend Engineer",
+      "email": "mani@applab.qa",
+      "phone": "",
+      "location": "Doha, Qatar",
+      "type": "Full-time",
+      "joined": "",
+      "hours": "40",
+      "notes": ""
+    }
+  ],
+  "projects": [
+    {
+      "name": "Multiversity",
+      "owner": "Lekha / Rida",
+      "desc": "React / WP / API integration",
+      "tech": "React / WP / API integration",
+      "state": "Active",
+      "color": "#2478D8",
+      "completedOn": ""
+    },
+    {
+      "name": "COM — Council of Ministers",
+      "owner": "Aiman Rizwan",
+      "desc": "WP / SharePoint",
+      "tech": "WP / SharePoint",
+      "state": "Active",
+      "color": "#00A86C",
+      "completedOn": ""
+    },
+    {
+      "name": "QU",
+      "owner": "Mohita",
+      "desc": "Jira tickets",
+      "tech": "Jira tickets",
+      "state": "Active",
+      "color": "#E4661C",
+      "completedOn": ""
+    },
+    {
+      "name": "HBKU — GISR",
+      "owner": "HBKU",
+      "desc": "React / Drupal",
+      "tech": "React / Drupal",
+      "state": "Active",
+      "color": "#6B3FC4",
+      "completedOn": ""
+    },
+    {
+      "name": "HBKU",
+      "owner": "HBKU",
+      "desc": "React / Drupal",
+      "tech": "React / Drupal",
+      "state": "Active",
+      "color": "#0E7C86",
+      "completedOn": ""
+    },
+    {
+      "name": "QF-360",
+      "owner": "Rawas",
+      "desc": "React",
+      "tech": "React",
+      "state": "Active",
+      "color": "#C2185B",
+      "completedOn": ""
+    },
+    {
+      "name": "QF-TNS",
+      "owner": "Ammar",
+      "desc": "React",
+      "tech": "React",
+      "state": "Active",
+      "color": "#B8860B",
+      "completedOn": ""
+    },
+    {
+      "name": "Mediacity",
+      "owner": "Shahad",
+      "desc": "SEO improvement",
+      "tech": "SEO improvement",
+      "state": "Active",
+      "color": "#3F51B5",
+      "completedOn": ""
+    },
+    {
+      "name": "Thakira / QNL",
+      "owner": "—",
+      "desc": "Style support",
+      "tech": "Style support",
+      "state": "Active",
+      "color": "#00897B",
+      "completedOn": ""
+    },
+    {
+      "name": "NPC AI Chatbot",
+      "owner": "—",
+      "desc": "API / FE support",
+      "tech": "API / FE support",
+      "state": "Active",
+      "color": "#8E24AA",
+      "completedOn": ""
+    },
+    {
+      "name": "EC",
+      "owner": "—",
+      "desc": "HTML / CSS pages",
+      "tech": "HTML / CSS pages",
+      "state": "Completed",
+      "color": "#5D4037",
+      "completedOn": "2026-08-14"
+    },
+    {
+      "name": "QFFD",
+      "owner": "Rida",
+      "desc": "Style support",
+      "tech": "Style support",
+      "state": "Backlog",
+      "color": "#455A64",
+      "completedOn": ""
+    }
+  ],
+  "assignments": [
+    {
+      "id": "a0",
+      "person": "p4",
+      "project": "HBKU",
+      "work": "Client side — long term",
+      "alloc": 100,
+      "start": "2024-01-01",
+      "end": "2027-01-01"
+    },
+    {
+      "id": "a1",
+      "person": "p5",
+      "project": "QF-TNS",
+      "work": "React build",
+      "alloc": 50,
+      "start": "2026-01-01",
+      "end": "2027-01-01"
+    },
+    {
+      "id": "a2",
+      "person": "p3",
+      "project": "QF-360",
+      "work": "Dashboard — client side",
+      "alloc": 100,
+      "start": "2026-01-01",
+      "end": "2027-01-01"
+    },
+    {
+      "id": "a3",
+      "person": "p1",
+      "project": "HBKU — GISR",
+      "work": "Client side",
+      "alloc": 100,
+      "start": "2026-06-21",
+      "end": "2026-08-21"
+    },
+    {
+      "id": "a4",
+      "person": "p0",
+      "project": "QU",
+      "work": "Bug fixes",
+      "alloc": 75,
+      "start": "2026-06-22",
+      "end": "2026-09-03"
+    },
+    {
+      "id": "a5",
+      "person": "p2",
+      "project": "QF-360",
+      "work": "Dashboard — client side",
+      "alloc": 100,
+      "start": "2026-07-05",
+      "end": "2026-08-05"
+    },
+    {
+      "id": "a6",
+      "person": "p6",
+      "project": "Multiversity",
+      "work": "API integration",
+      "alloc": 25,
+      "start": "2026-07-20",
+      "end": "2026-07-30"
+    },
+    {
+      "id": "a7",
+      "person": "p6",
+      "project": "Thakira / QNL",
+      "work": "Style support",
+      "alloc": 25,
+      "start": "2026-07-20",
+      "end": "2026-09-10"
+    },
+    {
+      "id": "a8",
+      "person": "p6",
+      "project": "Mediacity",
+      "work": "SEO support",
+      "alloc": 25,
+      "start": "2026-05-24",
+      "end": "2026-08-30"
+    },
+    {
+      "id": "a9",
+      "person": "p6",
+      "project": "NPC AI Chatbot",
+      "work": "API / FE support",
+      "alloc": 25,
+      "start": "2026-07-28",
+      "end": "2027-07-28"
+    },
+    {
+      "id": "a10",
+      "person": "p5",
+      "project": "EC",
+      "work": "New page — HTML/CSS",
+      "alloc": 50,
+      "start": "2026-08-12",
+      "end": "2026-08-14"
+    },
+    {
+      "id": "a11",
+      "person": "p2",
+      "project": "COM — Council of Ministers",
+      "work": "React / Next",
+      "alloc": 50,
+      "start": "2026-08-12",
+      "end": "2026-09-29"
+    },
+    {
+      "id": "a12",
+      "person": "p0",
+      "project": "Mediacity",
+      "work": "SEO and speed enhancement",
+      "alloc": 50,
+      "start": "2026-05-20",
+      "end": "2026-09-10"
+    },
+    {
+      "id": "a13",
+      "person": "p2",
+      "project": "HBKU — GISR",
+      "work": "React bug fixes",
+      "alloc": 50,
+      "start": "2026-08-24",
+      "end": "2026-09-24"
+    },
+    {
+      "id": "a14",
+      "person": "p6",
+      "project": "Multiversity",
+      "work": "React, style support",
+      "alloc": 100,
+      "start": "2026-07-20",
+      "end": "2026-08-28"
+    }
+  ]
+}

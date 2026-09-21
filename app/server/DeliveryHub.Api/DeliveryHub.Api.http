@@ -1,0 +1,6 @@
+@DeliveryHub.Api_HostAddress = http://localhost:5199
+
+GET {{DeliveryHub.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
