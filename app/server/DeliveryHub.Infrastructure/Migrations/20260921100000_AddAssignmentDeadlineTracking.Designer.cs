@@ -114,9 +114,6 @@ namespace DeliveryHub.Infrastructure.Migrations
                     b.Property<int>("Alloc")
                         .HasColumnType("int");
 
-                    b.Property<bool>("Backlogged")
-                        .HasColumnType("bit");
-
                     b.Property<DateOnly>("End")
                         .HasColumnType("date");
 

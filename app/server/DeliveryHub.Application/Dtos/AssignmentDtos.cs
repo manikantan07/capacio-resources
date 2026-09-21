@@ -15,8 +15,7 @@ public record AssignmentDto(
     bool Active,
     bool DeadlineMissed,
     DateOnly? OriginalDeadline,
-    string? ExtensionReason,
-    bool Backlogged);
+    string? ExtensionReason);
 
 public record CreateAssignmentRequest(
     Guid PersonId,
@@ -28,13 +27,10 @@ public record CreateAssignmentRequest(
 
 public record UpdateAllocRequest(int Alloc);
 
-public record UpdateAssignmentRequest(string Work, int Alloc, DateOnly Start, DateOnly End);
+/// <summary>RecordMissedDeadline logs the pre-edit end date and Reason alongside the rest of the edit — see Edit assignment popover.</summary>
+public record UpdateAssignmentRequest(string Work, int Alloc, DateOnly Start, DateOnly End, bool RecordMissedDeadline, string? Reason);
 
 public record ReassignRequest(Guid NewPersonId);
-
-public record ExtendDeadlineRequest(DateOnly NewEnd, string? Reason);
-
-public record BacklogAssignmentRequest(string? Reason);
 
 public record MovePreviewDto(Guid PersonId, string PersonName, int CurrentLoad, int ProjectedLoad, LoadBand ProjectedBand);
 

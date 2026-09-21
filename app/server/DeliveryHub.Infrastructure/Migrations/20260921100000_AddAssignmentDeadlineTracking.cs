@@ -11,13 +11,6 @@ namespace DeliveryHub.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<bool>(
-                name: "Backlogged",
-                table: "Assignments",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
-
             migrationBuilder.AddColumn<string>(
                 name: "ExtensionReason",
                 table: "Assignments",
@@ -35,10 +28,6 @@ namespace DeliveryHub.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Backlogged",
-                table: "Assignments");
-
             migrationBuilder.DropColumn(
                 name: "ExtensionReason",
                 table: "Assignments");

@@ -1,6 +1,9 @@
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import TextField from "@mui/material/TextField";
+import Autocomplete from "@mui/material/Autocomplete";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Button from "@mui/material/Button";
 import { useUpdateAssignment } from "../features/queries";
 import { useToast } from "./ToastProvider";
@@ -15,6 +18,16 @@ interface EditAssignmentPopoverProps {
   onClose: () => void;
 }
 
+// A starting set of common reasons — the field also takes freeform text for anything else.
+const DELAY_REASONS = [
+  "Client delay",
+  "Scope change",
+  "Resourcing / availability",
+  "Blocked by a dependency",
+  "Technical issue",
+  "Underestimated effort",
+];
+
 export function EditAssignmentPopover({ assignment, projectCompleted, anchorRef, onClose }: EditAssignmentPopoverProps) {
   const updateAssignment = useUpdateAssignment();
   const { showToast } = useToast();
@@ -22,6 +35,8 @@ export function EditAssignmentPopover({ assignment, projectCompleted, anchorRef,
   const [alloc, setAlloc] = useState(assignment.alloc);
   const [start, setStart] = useState(assignment.start);
   const [end, setEnd] = useState(assignment.end);
+  const [recordMissedDeadline, setRecordMissedDeadline] = useState(false);
+  const [reason, setReason] = useState("");
   const [pos, setPos] = useState<{ bottom: number; right: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -34,7 +49,15 @@ export function EditAssignmentPopover({ assignment, projectCompleted, anchorRef,
   const submit = async () => {
     if (!work.trim() || invalidRange) return;
     try {
-      await updateAssignment.mutateAsync({ id: assignment.id, work, alloc, start, end });
+      await updateAssignment.mutateAsync({
+        id: assignment.id,
+        work,
+        alloc,
+        start,
+        end,
+        recordMissedDeadline,
+        reason: recordMissedDeadline ? reason.trim() || undefined : undefined,
+      });
       showToast(`${assignment.projectName} assignment updated`);
       onClose();
     } catch (err) {
@@ -97,6 +120,28 @@ export function EditAssignmentPopover({ assignment, projectCompleted, anchorRef,
             fullWidth
           />
         </div>
+        <FormControlLabel
+          control={<Checkbox size="small" checked={recordMissedDeadline} onChange={(e) => setRecordMissedDeadline(e.target.checked)} />}
+          label={<span style={{ fontSize: 12.5 }}>Record another missed deadline</span>}
+          style={{ marginLeft: -6 }}
+        />
+        {recordMissedDeadline && (
+          <Autocomplete
+            size="small"
+            freeSolo
+            options={DELAY_REASONS}
+            value={reason}
+            onInputChange={(_, newValue) => setReason(newValue)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Reason for delay"
+                placeholder="Pick a reason or type your own"
+                slotProps={{ inputLabel: { sx: { color: color.danger } } }}
+              />
+            )}
+          />
+        )}
         <div style={{ display: "flex", gap: 8 }}>
           <Button size="small" onClick={onClose}>
             Cancel

@@ -41,16 +41,6 @@ public class AssignmentsController(AssignmentsService service) : ControllerBase
     public async Task<ActionResult<AssignmentDto>> Reassign(Guid id, ReassignRequest request, CancellationToken ct) =>
         Ok(await service.ReassignAsync(id, request, ct));
 
-    [HttpPut("{id:guid}/extend")]
-    [Authorize(Roles = "Owner")]
-    public async Task<ActionResult<AssignmentDto>> ExtendDeadline(Guid id, ExtendDeadlineRequest request, CancellationToken ct) =>
-        Ok(await service.ExtendDeadlineAsync(id, request, ct));
-
-    [HttpPut("{id:guid}/backlog")]
-    [Authorize(Roles = "Owner")]
-    public async Task<ActionResult<AssignmentDto>> Backlog(Guid id, BacklogAssignmentRequest request, CancellationToken ct) =>
-        Ok(await service.BacklogAsync(id, request, ct));
-
     [HttpGet("{id:guid}/move-preview")]
     public async Task<ActionResult<List<MovePreviewDto>>> MovePreview(Guid id, CancellationToken ct) =>
         Ok(await service.GetMovePreviewAsync(id, ct));

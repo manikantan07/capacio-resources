@@ -77,7 +77,6 @@ export interface Assignment {
   deadlineMissed: boolean;
   originalDeadline: string | null;
   extensionReason: string | null;
-  backlogged: boolean;
 }
 
 export interface MovePreview {
@@ -141,7 +140,7 @@ export type ActivityActionType =
   | "PersonCreated" | "PersonUpdated" | "PersonDeleted"
   | "ProjectCreated" | "ProjectMarkedComplete" | "ProjectReopened"
   | "AssignmentCreated" | "AssignmentAllocUpdated" | "AssignmentEdited" | "AssignmentDeleted" | "AssignmentReassigned"
-  | "AssignmentDeadlineExtended" | "AssignmentBacklogged"
+  | "AssignmentDeadlineExtended"
   | "Undo";
 
 export interface ActivityEntry {

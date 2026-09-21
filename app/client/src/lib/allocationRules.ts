@@ -8,14 +8,13 @@ import type { Assignment, LoadBand, Person, Project } from "../types";
 
 export function isActive(assignment: Assignment, project: Project | undefined, today: string): boolean {
   if (!project) return false;
-  return project.state !== "Completed" && !assignment.backlogged && assignment.start <= today && assignment.end >= today;
+  return project.state !== "Completed" && assignment.start <= today && assignment.end >= today;
 }
 
-// Rule 10: a deadline counts as missed once its end date has passed, unless it's already been
-// resolved by backlogging it (extending it moves end forward, which clears this on its own).
+// Rule 10: a deadline counts as missed once its end date has passed and nobody's pushed it forward yet.
 export function isDeadlineMissed(assignment: Assignment, project: Project | undefined, today: string): boolean {
   if (!project) return false;
-  return project.state !== "Completed" && !assignment.backlogged && assignment.end < today;
+  return project.state !== "Completed" && assignment.end < today;
 }
 
 export function calculateLoad(

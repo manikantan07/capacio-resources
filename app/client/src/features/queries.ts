@@ -115,8 +115,23 @@ export const useUpdateAlloc = () => {
 export const useUpdateAssignment = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, work, alloc, start, end }: { id: string; work: string; alloc: number; start: string; end: string }) =>
-      api.put<Assignment>(`/api/assignments/${id}`, { work, alloc, start, end }),
+    mutationFn: ({
+      id,
+      work,
+      alloc,
+      start,
+      end,
+      recordMissedDeadline,
+      reason,
+    }: {
+      id: string;
+      work: string;
+      alloc: number;
+      start: string;
+      end: string;
+      recordMissedDeadline?: boolean;
+      reason?: string;
+    }) => api.put<Assignment>(`/api/assignments/${id}`, { work, alloc, start, end, recordMissedDeadline: !!recordMissedDeadline, reason }),
     onSuccess: () => invalidateAssignmentGraph(qc),
   });
 };
@@ -134,24 +149,6 @@ export const useReassignAssignment = () => {
   return useMutation({
     mutationFn: ({ id, newPersonId }: { id: string; newPersonId: string }) =>
       api.post<Assignment>(`/api/assignments/${id}/reassign`, { newPersonId }),
-    onSuccess: () => invalidateAssignmentGraph(qc),
-  });
-};
-
-export const useExtendDeadline = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, newEnd, reason }: { id: string; newEnd: string; reason?: string }) =>
-      api.put<Assignment>(`/api/assignments/${id}/extend`, { newEnd, reason }),
-    onSuccess: () => invalidateAssignmentGraph(qc),
-  });
-};
-
-export const useBacklogAssignment = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
-      api.put<Assignment>(`/api/assignments/${id}/backlog`, { reason }),
     onSuccess: () => invalidateAssignmentGraph(qc),
   });
 };

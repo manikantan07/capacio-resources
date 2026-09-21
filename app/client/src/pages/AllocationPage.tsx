@@ -5,7 +5,6 @@ import { StatusBadge } from "../components/StatusBadge";
 import { NewProjectModal } from "../components/NewProjectModal";
 import { CloseIcon, PlusIcon, PencilIcon } from "../components/Icons";
 import { EditAssignmentPopover } from "../components/EditAssignmentPopover";
-import { ResolveDeadlinePopover } from "../components/ResolveDeadlinePopover";
 import {
   usePeople,
   useLiveProjects,
@@ -368,8 +367,6 @@ export function AllocationPage() {
   const [movingId, setMovingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editAnchorRef = useRef<HTMLDivElement | null>(null);
-  const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const resolveAnchorRef = useRef<HTMLSpanElement | null>(null);
   const [assigningPersonId, setAssigningPersonId] = useState<string | null>(null);
   const today = todayIso();
 
@@ -518,7 +515,7 @@ export function AllocationPage() {
                     // useLiveProjects() never returns completed projects, so absence here means completed.
                     const isCompletedProject = !project;
                     const rowIsActive = isActive(a, project, today);
-                    const notStartedYet = !rowIsActive && !isCompletedProject && !a.backlogged && !a.deadlineMissed;
+                    const notStartedYet = !rowIsActive && !isCompletedProject && !a.deadlineMissed;
                     const showHistoryLine = !!a.originalDeadline && !a.deadlineMissed;
                     return (
                   <div key={a.id} style={{ display: "grid", gridTemplateColumns: "12px minmax(120px,1.1fr) minmax(120px,1.4fr) 168px 108px 30px 96px 28px", gap: 12, alignItems: "center", background: color.surface, border: `1px solid ${color.hairline}`, borderRadius: 10, padding: "10px 12px", position: "relative" }}>
@@ -533,33 +530,15 @@ export function AllocationPage() {
                           Completed
                         </span>
                       )}
-                      {!isCompletedProject && a.backlogged && (
+                      {!isCompletedProject && a.deadlineMissed && (
                         <span
-                          title="Parked with no committed date — doesn't count toward capacity right now"
-                          style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 4, background: color.hairline, color: color.textMeta, flexShrink: 0 }}
+                          title="This deadline has passed — edit the assignment to extend it and record why"
+                          style={{
+                            fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 4,
+                            background: bandColors.OverAllocated.bg, color: bandColors.OverAllocated.text, flexShrink: 0,
+                          }}
                         >
-                          Backlog
-                        </span>
-                      )}
-                      {!isCompletedProject && !a.backlogged && a.deadlineMissed && (
-                        <span
-                          ref={(el) => { if (a.id === resolvingId) resolveAnchorRef.current = el; }}
-                          style={{ position: "relative", display: "inline-flex" }}
-                        >
-                          <button
-                            onClick={() => isOwner && setResolvingId(resolvingId === a.id ? null : a.id)}
-                            title={isOwner ? "Resolve the missed deadline" : "This deadline has passed"}
-                            style={{
-                              fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 4,
-                              border: "none", background: bandColors.OverAllocated.bg, color: bandColors.OverAllocated.text, flexShrink: 0,
-                              cursor: isOwner ? "pointer" : "default",
-                            }}
-                          >
-                            ⚠ Deadline missed
-                          </button>
-                          {isOwner && resolvingId === a.id && (
-                            <ResolveDeadlinePopover assignment={a} anchorRef={resolveAnchorRef} onClose={() => setResolvingId(null)} />
-                          )}
+                          ⚠ Deadline missed
                         </span>
                       )}
                       {notStartedYet && (
@@ -624,11 +603,7 @@ export function AllocationPage() {
                     {showHistoryLine && (
                       <div style={{ gridColumn: "1 / -1", fontSize: 11, color: color.textMuted, display: "flex", gap: 6, alignItems: "center" }}>
                         <span>Missed: <span style={{ fontFamily: fontMono }}>{a.originalDeadline}</span></span>
-                        {a.backlogged ? (
-                          <span>· Parked in backlog</span>
-                        ) : (
-                          <span>· Extended to: <span style={{ fontFamily: fontMono }}>{a.end}</span></span>
-                        )}
+                        <span>· Extended to: <span style={{ fontFamily: fontMono }}>{a.end}</span></span>
                         <button
                           onClick={() => showToast(a.extensionReason || "No reason given")}
                           style={{ border: "none", background: "none", padding: 0, color: color.textSecondary, textDecoration: "underline", cursor: "pointer", fontSize: 11 }}

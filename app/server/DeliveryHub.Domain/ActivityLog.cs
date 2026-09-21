@@ -14,7 +14,6 @@ public enum ActivityActionType
     AssignmentDeleted,
     AssignmentReassigned,
     AssignmentDeadlineExtended,
-    AssignmentBacklogged,
     Undo
 }
 

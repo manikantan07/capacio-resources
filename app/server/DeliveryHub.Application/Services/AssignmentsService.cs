@@ -82,71 +82,30 @@ public class AssignmentsService(IDeliveryHubDbContext db, IDateProvider clock, I
         }
 
         var before = CloneAssignment(assignment);
+        // Recording a missed deadline captures whatever End was set to just before this edit —
+        // do this first, before it's overwritten below. Checking the box again on a later edit
+        // simply replaces the record with the most recent one; it doesn't keep a full history.
+        if (request.RecordMissedDeadline)
+        {
+            assignment.OriginalDeadline = assignment.End;
+            assignment.ExtensionReason = request.Reason;
+        }
         assignment.Work = request.Work;
         assignment.Alloc = Math.Clamp(request.Alloc, 5, 100);
         assignment.Start = request.Start;
         assignment.End = request.End;
-        // A full edit re-commits the work to real dates, so it can't stay parked in the backlog.
-        assignment.Backlogged = false;
         await db.SaveChangesAsync(ct);
 
         var people = await db.People.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
         var projects = await db.Projects.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
 
         var label = $"{people.GetValueOrDefault(assignment.PersonId)?.Name} — {projects.GetValueOrDefault(assignment.ProjectId)?.Name}";
+        var actionType = request.RecordMissedDeadline ? ActivityActionType.AssignmentDeadlineExtended : ActivityActionType.AssignmentEdited;
+        var summary = request.RecordMissedDeadline
+            ? $"{label} missed deadline recorded — extended to {assignment.End}"
+            : $"{label} updated — {assignment.Start} → {assignment.End}, {assignment.Alloc}%";
         await activity.LogAsync(
-            ActivityActionType.AssignmentEdited, $"{label} updated — {assignment.Start} → {assignment.End}, {assignment.Alloc}%",
-            [ActivitySnapshot.Entry("Assignment", assignment.Id, label, before, assignment)], ct);
-
-        return ToDto(assignment, people, projects);
-    }
-
-    /// <summary>Resolve a missed deadline by pushing the end date forward. Records the first missed date once.</summary>
-    public async Task<AssignmentDto> ExtendDeadlineAsync(Guid id, ExtendDeadlineRequest request, CancellationToken ct = default)
-    {
-        var assignment = await db.Assignments.FirstOrDefaultAsync(a => a.Id == id, ct)
-            ?? throw new AssignmentNotFoundException(id);
-        if (request.NewEnd < assignment.Start)
-        {
-            throw new InvalidDateRangeException();
-        }
-
-        var before = CloneAssignment(assignment);
-        assignment.OriginalDeadline ??= assignment.End;
-        assignment.End = request.NewEnd;
-        assignment.ExtensionReason = request.Reason;
-        assignment.Backlogged = false;
-        await db.SaveChangesAsync(ct);
-
-        var people = await db.People.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
-        var projects = await db.Projects.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
-
-        var label = $"{people.GetValueOrDefault(assignment.PersonId)?.Name} — {projects.GetValueOrDefault(assignment.ProjectId)?.Name}";
-        await activity.LogAsync(
-            ActivityActionType.AssignmentDeadlineExtended, $"{label} deadline extended to {assignment.End}",
-            [ActivitySnapshot.Entry("Assignment", assignment.Id, label, before, assignment)], ct);
-
-        return ToDto(assignment, people, projects);
-    }
-
-    /// <summary>Resolve a missed deadline by parking the work with no committed date instead of rescheduling it.</summary>
-    public async Task<AssignmentDto> BacklogAsync(Guid id, BacklogAssignmentRequest request, CancellationToken ct = default)
-    {
-        var assignment = await db.Assignments.FirstOrDefaultAsync(a => a.Id == id, ct)
-            ?? throw new AssignmentNotFoundException(id);
-
-        var before = CloneAssignment(assignment);
-        assignment.OriginalDeadline ??= assignment.End;
-        assignment.ExtensionReason = request.Reason;
-        assignment.Backlogged = true;
-        await db.SaveChangesAsync(ct);
-
-        var people = await db.People.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
-        var projects = await db.Projects.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
-
-        var label = $"{people.GetValueOrDefault(assignment.PersonId)?.Name} — {projects.GetValueOrDefault(assignment.ProjectId)?.Name}";
-        await activity.LogAsync(
-            ActivityActionType.AssignmentBacklogged, $"{label} moved to backlog",
+            actionType, summary,
             [ActivitySnapshot.Entry("Assignment", assignment.Id, label, before, assignment)], ct);
 
         return ToDto(assignment, people, projects);
@@ -195,7 +154,7 @@ public class AssignmentsService(IDeliveryHubDbContext db, IDateProvider clock, I
     private static Assignment CloneAssignment(Assignment a) => new()
     {
         Id = a.Id, PersonId = a.PersonId, ProjectId = a.ProjectId, Work = a.Work, Alloc = a.Alloc, Start = a.Start, End = a.End,
-        OriginalDeadline = a.OriginalDeadline, ExtensionReason = a.ExtensionReason, Backlogged = a.Backlogged
+        OriginalDeadline = a.OriginalDeadline, ExtensionReason = a.ExtensionReason
     };
 
     /// <summary>For the Move popover — what each other person's load would become if this assignment moved to them.</summary>
@@ -244,6 +203,6 @@ public class AssignmentsService(IDeliveryHubDbContext db, IDateProvider clock, I
         return new AssignmentDto(
             a.Id, a.PersonId, peopleById.GetValueOrDefault(a.PersonId)?.Name ?? "Former member",
             a.ProjectId, project?.Name ?? "(unknown project)", a.Work, a.Alloc, a.Start, a.End, active,
-            deadlineMissed, a.OriginalDeadline, a.ExtensionReason, a.Backlogged);
+            deadlineMissed, a.OriginalDeadline, a.ExtensionReason);
     }
 }
