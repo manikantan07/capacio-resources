@@ -14,11 +14,19 @@ public readonly record struct SkillMatchResult(
 /// </summary>
 public static class AllocationRules
 {
-    // Rule 1: an assignment is "active" when the project isn't completed and today falls in [start, end].
+    // Rule 1: an assignment is "active" when the project isn't completed, it isn't backlogged, and today falls in [start, end].
     public static bool IsActive(Assignment assignment, Project project, DateOnly today) =>
         project.State != ProjectState.Completed
+        && !assignment.Backlogged
         && assignment.Start <= today
         && assignment.End >= today;
+
+    // Rule 10: a deadline counts as missed once its end date has passed, unless it's already been
+    // resolved by backlogging it (extending it moves End forward, which clears this on its own).
+    public static bool IsDeadlineMissed(Assignment assignment, Project project, DateOnly today) =>
+        project.State != ProjectState.Completed
+        && !assignment.Backlogged
+        && assignment.End < today;
 
     // Rule 2: a person's current load = sum of alloc over their active assignments. Can exceed 100.
     public static int CalculateLoad(

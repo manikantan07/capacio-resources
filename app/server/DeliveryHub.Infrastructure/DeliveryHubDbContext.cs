@@ -52,6 +52,7 @@ public class DeliveryHubDbContext(DbContextOptions<DeliveryHubDbContext> options
         {
             entity.HasKey(a => a.Id);
             entity.Property(a => a.Work).HasMaxLength(500);
+            entity.Property(a => a.ExtensionReason).HasMaxLength(1000);
             entity.HasIndex(a => a.PersonId); // no FK constraint by design — see Assignment.cs
             entity.HasOne(a => a.Project)
                 .WithMany(p => p.Assignments)

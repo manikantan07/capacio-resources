@@ -20,4 +20,13 @@ public class Assignment
 
     public DateOnly Start { get; set; }
     public DateOnly End { get; set; }
+
+    /// <summary>The end date first missed, before any extension. Null until the first miss.</summary>
+    public DateOnly? OriginalDeadline { get; set; }
+
+    /// <summary>Why the deadline was extended or the work was backlogged — set by whichever happened most recently.</summary>
+    public string? ExtensionReason { get; set; }
+
+    /// <summary>Parked with no committed date instead of being rescheduled. Excluded from capacity while true.</summary>
+    public bool Backlogged { get; set; }
 }

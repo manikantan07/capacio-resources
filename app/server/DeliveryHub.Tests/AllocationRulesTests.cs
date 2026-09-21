@@ -39,6 +39,49 @@ public class AllocationRulesTests
         Assert.False(AllocationRules.IsActive(assignment, project, Today));
     }
 
+    [Fact]
+    public void IsActive_FalseWhenBacklogged()
+    {
+        var project = MakeProject();
+        var assignment = MakeAssignment(project.Id, Today.AddDays(-5), Today.AddDays(5));
+        assignment.Backlogged = true;
+        Assert.False(AllocationRules.IsActive(assignment, project, Today));
+    }
+
+    // Rule 10
+    [Fact]
+    public void IsDeadlineMissed_TrueWhenEndBeforeTodayAndNotBacklogged()
+    {
+        var project = MakeProject();
+        var assignment = MakeAssignment(project.Id, Today.AddDays(-10), Today.AddDays(-1));
+        Assert.True(AllocationRules.IsDeadlineMissed(assignment, project, Today));
+    }
+
+    [Fact]
+    public void IsDeadlineMissed_FalseWhenBacklogged()
+    {
+        var project = MakeProject();
+        var assignment = MakeAssignment(project.Id, Today.AddDays(-10), Today.AddDays(-1));
+        assignment.Backlogged = true;
+        Assert.False(AllocationRules.IsDeadlineMissed(assignment, project, Today));
+    }
+
+    [Fact]
+    public void IsDeadlineMissed_FalseWhenEndStillInFuture()
+    {
+        var project = MakeProject();
+        var assignment = MakeAssignment(project.Id, Today.AddDays(-5), Today.AddDays(5));
+        Assert.False(AllocationRules.IsDeadlineMissed(assignment, project, Today));
+    }
+
+    [Fact]
+    public void IsDeadlineMissed_FalseWhenProjectCompleted()
+    {
+        var project = MakeProject(ProjectState.Completed);
+        var assignment = MakeAssignment(project.Id, Today.AddDays(-10), Today.AddDays(-1));
+        Assert.False(AllocationRules.IsDeadlineMissed(assignment, project, Today));
+    }
+
     // Rule 2
     [Fact]
     public void CalculateLoad_SumsOnlyActiveAssignments_CanExceed100()

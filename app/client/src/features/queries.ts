@@ -138,6 +138,24 @@ export const useReassignAssignment = () => {
   });
 };
 
+export const useExtendDeadline = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, newEnd, reason }: { id: string; newEnd: string; reason?: string }) =>
+      api.put<Assignment>(`/api/assignments/${id}/extend`, { newEnd, reason }),
+    onSuccess: () => invalidateAssignmentGraph(qc),
+  });
+};
+
+export const useBacklogAssignment = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      api.put<Assignment>(`/api/assignments/${id}/backlog`, { reason }),
+    onSuccess: () => invalidateAssignmentGraph(qc),
+  });
+};
+
 export const useMovePreview = (assignmentId: string | null) =>
   useQuery({
     queryKey: ["assignments", assignmentId, "move-preview"],

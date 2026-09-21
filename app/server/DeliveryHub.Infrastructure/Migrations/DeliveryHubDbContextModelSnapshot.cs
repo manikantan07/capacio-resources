@@ -111,7 +111,17 @@ namespace DeliveryHub.Infrastructure.Migrations
                     b.Property<int>("Alloc")
                         .HasColumnType("int");
 
+                    b.Property<bool>("Backlogged")
+                        .HasColumnType("bit");
+
                     b.Property<DateOnly>("End")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ExtensionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateOnly?>("OriginalDeadline")
                         .HasColumnType("date");
 
                     b.Property<Guid>("PersonId")

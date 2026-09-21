@@ -74,6 +74,10 @@ export interface Assignment {
   start: string;
   end: string;
   active: boolean;
+  deadlineMissed: boolean;
+  originalDeadline: string | null;
+  extensionReason: string | null;
+  backlogged: boolean;
 }
 
 export interface MovePreview {
@@ -136,7 +140,8 @@ export interface MarkCompleteResult {
 export type ActivityActionType =
   | "PersonCreated" | "PersonUpdated" | "PersonDeleted"
   | "ProjectCreated" | "ProjectMarkedComplete" | "ProjectReopened"
-  | "AssignmentCreated" | "AssignmentAllocUpdated" | "AssignmentDeleted" | "AssignmentReassigned"
+  | "AssignmentCreated" | "AssignmentAllocUpdated" | "AssignmentEdited" | "AssignmentDeleted" | "AssignmentReassigned"
+  | "AssignmentDeadlineExtended" | "AssignmentBacklogged"
   | "Undo";
 
 export interface ActivityEntry {
