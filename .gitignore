@@ -54,3 +54,6 @@ docker-data/
 
 # Archives generated during handoff/export
 *.zip
+
+# Design handoff files
+_design/
