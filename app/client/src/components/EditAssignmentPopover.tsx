@@ -35,8 +35,10 @@ export function EditAssignmentPopover({ assignment, projectCompleted, anchorRef,
   const [alloc, setAlloc] = useState(assignment.alloc);
   const [start, setStart] = useState(assignment.start);
   const [end, setEnd] = useState(assignment.end);
-  const [recordMissedDeadline, setRecordMissedDeadline] = useState(false);
-  const [reason, setReason] = useState("");
+  // Pre-open and pre-fill when there's already a recorded reason, so editing it is just "change the text and save" —
+  // not "re-tick a box that looks unrelated to what you're trying to do."
+  const [recordMissedDeadline, setRecordMissedDeadline] = useState(assignment.originalDeadline !== null);
+  const [reason, setReason] = useState(assignment.extensionReason ?? "");
   const [pos, setPos] = useState<{ bottom: number; right: number } | null>(null);
 
   useLayoutEffect(() => {

@@ -82,12 +82,15 @@ public class AssignmentsService(IDeliveryHubDbContext db, IDateProvider clock, I
         }
 
         var before = CloneAssignment(assignment);
-        // Recording a missed deadline captures whatever End was set to just before this edit —
-        // do this first, before it's overwritten below. Checking the box again on a later edit
-        // simply replaces the record with the most recent one; it doesn't keep a full history.
         if (request.RecordMissedDeadline)
         {
-            assignment.OriginalDeadline = assignment.End;
+            // Only capture a fresh "missed" date when this edit is actually the one moving End
+            // forward, or when there's no record yet. Re-saving with the box still checked but
+            // End unchanged (e.g. just correcting the reason's wording) leaves the original date alone.
+            if (assignment.OriginalDeadline is null || request.End != assignment.End)
+            {
+                assignment.OriginalDeadline = assignment.End;
+            }
             assignment.ExtensionReason = request.Reason;
         }
         assignment.Work = request.Work;
@@ -100,9 +103,12 @@ public class AssignmentsService(IDeliveryHubDbContext db, IDateProvider clock, I
         var projects = await db.Projects.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
 
         var label = $"{people.GetValueOrDefault(assignment.PersonId)?.Name} — {projects.GetValueOrDefault(assignment.ProjectId)?.Name}";
+        var deadlineDateChanged = request.RecordMissedDeadline && before.End != assignment.End;
         var actionType = request.RecordMissedDeadline ? ActivityActionType.AssignmentDeadlineExtended : ActivityActionType.AssignmentEdited;
         var summary = request.RecordMissedDeadline
-            ? $"{label} missed deadline recorded — extended to {assignment.End}"
+            ? deadlineDateChanged
+                ? $"{label} missed deadline recorded — extended to {assignment.End}"
+                : $"{label} missed deadline reason updated"
             : $"{label} updated — {assignment.Start} → {assignment.End}, {assignment.Alloc}%";
         await activity.LogAsync(
             actionType, summary,
