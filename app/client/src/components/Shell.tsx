@@ -6,6 +6,7 @@ import { usePeople, useLiveProjects, useCompletedProjects } from "../features/qu
 import { BriefingIcon, AllocationIcon, ProjectsIcon, CompletedIcon, TeamIcon, HistoryIcon, CalendarIcon, ChevronDown } from "./Icons";
 import { AvatarCircle } from "./AvatarCircle";
 import { ChangePasswordModal } from "./ChangePasswordModal";
+import { ExportAllocationButton } from "./ExportAllocationButton";
 import { color, fontMono, radius } from "../theme";
 
 const NAV_ITEMS = [
@@ -27,9 +28,10 @@ interface ShellProps {
   actionLabel?: string;
   onAction?: () => void;
   children: ReactNode;
+  className?: string;
 }
 
-export function Shell({ title, subtitle, actionLabel, onAction, children }: ShellProps) {
+export function Shell({ title, subtitle, actionLabel, onAction, children, className }: ShellProps) {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const [accountOpen, setAccountOpen] = useState(false);
@@ -49,7 +51,7 @@ export function Shell({ title, subtitle, actionLabel, onAction, children }: Shel
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: color.page }}>
+    <div className={className} style={{ display: "flex", height: "100vh", overflow: "hidden", background: color.page }}>
       <aside
         style={{
           width: 230,
@@ -88,6 +90,8 @@ export function Shell({ title, subtitle, actionLabel, onAction, children }: Shel
               <NavLink
                 key={item.to}
                 to={item.to}
+                title={item.label}
+                aria-label={item.label}
                 style={{
                   position: "relative",
                   height: 34,
@@ -144,6 +148,7 @@ export function Shell({ title, subtitle, actionLabel, onAction, children }: Shel
 
         <div style={{ position: "relative", borderTop: `1px solid ${color.divider}`, padding: 14 }}>
           <button
+            aria-label="Account menu"
             onClick={() => setAccountOpen((v) => !v)}
             style={{
               display: "flex",
@@ -258,6 +263,7 @@ export function Shell({ title, subtitle, actionLabel, onAction, children }: Shel
               As of <span style={{ fontFamily: fontMono }}>{todayLabel()}</span>
             </span>
           </div>
+          {["/allocation", "/projects", "/team"].includes(location.pathname) && <ExportAllocationButton />}
           {actionLabel && (
             <Button variant="contained" onClick={onAction} sx={{ height: 32, px: 1.6, fontSize: 12.5 }}>
               {actionLabel}

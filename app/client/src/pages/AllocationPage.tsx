@@ -1,10 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import Popover from "@mui/material/Popover";
 import { Shell } from "../components/Shell";
 import { StatusBadge } from "../components/StatusBadge";
 import { NewProjectModal } from "../components/NewProjectModal";
 import { CloseIcon, PlusIcon, PencilIcon } from "../components/Icons";
 import { EditAssignmentPopover } from "../components/EditAssignmentPopover";
+import { DeadlineBadge, DeadlineHistory } from "../components/DeadlineHistory";
+import { deadlineStyle } from "../lib/deadlineChanges";
 import {
   usePeople,
   useLiveProjects,
@@ -13,10 +16,12 @@ import {
   useUpdateAlloc,
   useDeleteAssignment,
   useReassignAssignment,
+  useCompleteAssignment,
 } from "../features/queries";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/ToastProvider";
-import { calculateLoad, getLoadBand, BAND_WORD, todayIso, isActive, fit } from "../lib/allocationRules";
+import { ApiError } from "../api/client";
+import { calculateLoad, getLoadBand, BAND_WORD, todayIso, isActive, isTentative, fit } from "../lib/allocationRules";
 import { hexToRgba } from "../lib/color";
 import { color, fontMono, bandColors, radius } from "../theme";
 import type { Assignment, Person, Project } from "../types";
@@ -31,6 +36,7 @@ function MovePopover({
   projectsById,
   assignments,
   today,
+  anchorRef,
   onClose,
 }: {
   assignment: Assignment;
@@ -38,6 +44,7 @@ function MovePopover({
   projectsById: Map<string, Project>;
   assignments: Assignment[];
   today: string;
+  anchorRef: React.RefObject<HTMLElement | null>;
   onClose: () => void;
 }) {
   const reassignAssignment = useReassignAssignment();
@@ -54,23 +61,31 @@ function MovePopover({
     })
     .sort((a, b) => a.person.name.localeCompare(b.person.name));
 
+  // MUI Popover portals to <body>, so the list can't be clipped by the board's
+  // scrolling/overflow containers, and it repositions to stay inside the viewport.
   return (
-    <div
-      onClick={(e) => e.stopPropagation()}
-      style={{
-        position: "absolute",
-        right: 0,
-        bottom: "100%",
-        marginBottom: 6,
-        width: 280,
-        maxHeight: 260,
-        overflowY: "auto",
-        background: color.surface,
-        border: `1px solid ${color.controlBorder}`,
-        borderRadius: radius.card,
-        padding: 6,
-        zIndex: 50,
-        boxShadow: "0 18px 44px rgba(72,62,42,.18)",
+    <Popover
+      open
+      anchorEl={() => anchorRef.current!}
+      onClose={onClose}
+      anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      transformOrigin={{ vertical: "bottom", horizontal: "right" }}
+      marginThreshold={12}
+      slotProps={{
+        paper: {
+          onClick: (e: React.MouseEvent) => e.stopPropagation(),
+          style: {
+            marginTop: -6,
+            width: 280,
+            maxHeight: 260,
+            overflowY: "auto",
+            background: color.surface,
+            border: `1px solid ${color.controlBorder}`,
+            borderRadius: radius.card,
+            padding: 6,
+            boxShadow: "0 18px 44px rgba(72,62,42,.18)",
+          },
+        },
       }}
     >
       <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: color.textTertiary, padding: "8px 9px 7px" }}>
@@ -103,7 +118,7 @@ function MovePopover({
           <span style={{ fontFamily: fontMono, fontSize: 11.5, fontWeight: 500, color: bandColors[o.band].base }}>{o.projectedLoad}%</span>
         </button>
       ))}
-    </div>
+    </Popover>
   );
 }
 
@@ -228,6 +243,18 @@ function ChartColumn({
     return { a, bottom, height };
   });
 
+  // Tentative (unconfirmed) work stacks on top of the confirmed load, striped, so you can
+  // see what it would take up — but it isn't part of `load`.
+  const tentative = assignments.filter((a) => a.personId === person.id && isTentative(a, projectsById.get(a.projectId), today)).sort((a, b) => b.alloc - a.alloc);
+  const tentativeLoad = tentative.reduce((s, a) => s + a.alloc, 0);
+  let tentativeTop = cumulative;
+  const positionedTentative = tentative.map((a) => {
+    const bottom = tentativeTop;
+    const height = a.alloc * UNIT;
+    tentativeTop += height;
+    return { a, bottom, height };
+  });
+
   return (
     <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "stretch" }}>
       <button
@@ -299,7 +326,7 @@ function ChartColumn({
           return (
             <div
               key={a.id}
-              title={`${a.projectName} · ${a.work} · ${a.alloc}% · ${a.start} → ${a.end}`}
+              title={`${a.projectName} · ${a.work} · ${a.alloc}% · ${a.start} → ${a.end}${a.deadlineExtensions?.length ? ` · ${deadlineStyle(a.deadlineExtensions.at(-1)).label}` : ""}`}
               onMouseEnter={() => onHoverProject(a.projectId)}
               onMouseLeave={() => onHoverProject(null)}
               style={{
@@ -312,6 +339,7 @@ function ChartColumn({
                 border: `1px solid ${dimmed ? hexToRgba(base, 0.16) : hexToRgba(base, 0.52)}`,
                 borderRadius: 4,
                 boxSizing: "border-box",
+                borderLeft: a.deadlineExtensions?.length ? `3px solid ${deadlineStyle(a.deadlineExtensions.at(-1)).text}` : undefined,
                 overflow: "hidden",
                 padding: "5px 7px",
                 opacity: dimmed ? 0.5 : 1,
@@ -326,6 +354,48 @@ function ChartColumn({
               )}
               {height >= 52 && (
                 <div style={{ fontFamily: fontMono, fontSize: 11, color: base, opacity: 0.72, marginTop: 2 }}>{a.alloc}%</div>
+              )}
+              {!!a.deadlineExtensions?.length && height >= 88 && <div style={{ marginTop: 8 }}><DeadlineBadge extension={a.deadlineExtensions.at(-1)} /></div>}
+            </div>
+          );
+        })}
+
+        {positionedTentative.map(({ a, bottom, height }) => {
+          const project = projectsById.get(a.projectId);
+          const base = project?.color ?? color.neutral;
+          const dimmed = hoveredProjectId !== null && hoveredProjectId !== a.projectId;
+          return (
+            <div
+              key={a.id}
+              title={`Tentative — not counted · ${a.projectName} · ${a.work} · ${a.alloc}% · ${a.start} → ${a.end}`}
+              onMouseEnter={() => onHoverProject(a.projectId)}
+              onMouseLeave={() => onHoverProject(null)}
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom,
+                height,
+                zIndex: 2,
+                backgroundImage: `repeating-linear-gradient(135deg, ${hexToRgba(base, 0.16)} 0 5px, ${hexToRgba(base, 0.04)} 5px 10px)`,
+                backgroundColor: color.surface,
+                border: `1px dashed ${hexToRgba(base, 0.6)}`,
+                borderRadius: 4,
+                boxSizing: "border-box",
+                overflow: "hidden",
+                padding: "5px 7px",
+                opacity: dimmed ? 0.4 : 1,
+                transition: "opacity .16s",
+                textAlign: "left",
+              }}
+            >
+              {height >= 30 && (
+                <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: base, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {project?.name ?? a.projectName}
+                </div>
+              )}
+              {height >= 52 && (
+                <div style={{ fontFamily: fontMono, fontSize: 10, color: base, opacity: 0.8, marginTop: 2 }}>{a.alloc}% · tentative</div>
               )}
             </div>
           );
@@ -346,6 +416,14 @@ function ChartColumn({
           <span style={{ fontFamily: fontMono, fontSize: 17, fontWeight: 500, letterSpacing: "-0.02em", color: bandColor }}>{load}%</span>
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: bandColor }}>{BAND_WORD[band]}</span>
         </div>
+        {tentativeLoad > 0 && (
+          <div
+            title={`If confirmed: ${load + tentativeLoad}%`}
+            style={{ marginTop: 3, fontFamily: fontMono, fontSize: 10, color: load + tentativeLoad > 100 ? color.dangerText : color.textMeta }}
+          >
+            +{tentativeLoad}% tentative
+          </div>
+        )}
       </div>
     </div>
   );
@@ -357,6 +435,7 @@ export function AllocationPage() {
   const { data: liveAssignments } = useAssignments();
   const updateAlloc = useUpdateAlloc();
   const deleteAssignment = useDeleteAssignment();
+  const completeAssignment = useCompleteAssignment();
   const { user } = useAuth();
   const isOwner = user?.role === "Owner";
   const { showToast } = useToast();
@@ -366,7 +445,9 @@ export function AllocationPage() {
   const [hoveredProjectId, setHoveredProjectId] = useState<string | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deadlineId, setDeadlineId] = useState<string | null>(null);
   const editAnchorRef = useRef<HTMLDivElement | null>(null);
+  const moveAnchorRef = useRef<HTMLDivElement | null>(null);
   const [assigningPersonId, setAssigningPersonId] = useState<string | null>(null);
   const today = todayIso();
 
@@ -392,11 +473,11 @@ export function AllocationPage() {
   const selectedBand = getLoadBand(selectedLoad);
 
   return (
-    <Shell title="Allocation" subtitle="The whole team's week, at a glance" actionLabel={isOwner ? "New project" : undefined} onAction={() => setNewProjectOpen(true)}>
+    <Shell className="allocation-shell" title="Allocation" subtitle="The whole team's week, at a glance" actionLabel={isOwner ? "New project" : undefined} onAction={() => setNewProjectOpen(true)}>
       {isLoading && <div style={{ color: color.textMuted, fontSize: 13 }}>Loading…</div>}
 
       {people && projects && (
-        <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        <div className="allocation-layout" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
           {/* Readout strip */}
           <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${color.divider}`, paddingBottom: 4, marginBottom: 8, flexWrap: "wrap" }}>
             {[
@@ -441,7 +522,7 @@ export function AllocationPage() {
           </div>
 
           {/* Chart */}
-          <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+          <div className="allocation-chart" style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
             <div style={{ minWidth: 820, position: "relative", paddingLeft: 46, paddingTop: 10 }}>
               {/* gridlines */}
               {[0, 50, 100].map((v) => (
@@ -503,7 +584,7 @@ export function AllocationPage() {
                 )}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
+              <div className="allocation-assignments" style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
                 {selectedAssignments.length === 0 && (
                   <div style={{ padding: "18px 12px", border: `1px dashed ${color.controlBorder}`, borderRadius: 10, fontSize: 12, color: color.textTertiary }}>
                     {selectedPerson.name} has nothing booked. Assign work to fill the week.
@@ -515,12 +596,21 @@ export function AllocationPage() {
                     // useLiveProjects() never returns completed projects, so absence here means completed.
                     const isCompletedProject = !project;
                     const rowIsActive = isActive(a, project, today);
+                    const projectIsTentative = project?.state === "Tentative";
                     return (
-                  <div key={a.id} style={{ display: "grid", gridTemplateColumns: "12px minmax(120px,1.1fr) minmax(120px,1.4fr) 168px 108px 30px 96px 28px", gap: 12, alignItems: "center", background: color.surface, border: `1px solid ${color.hairline}`, borderRadius: 10, padding: "10px 12px", position: "relative" }}>
+                  <div key={a.id} className="allocation-assignment-row" style={{ display: "grid", gap: 12, alignItems: "center", background: color.surface, border: `1px solid ${color.hairline}`, borderLeft: a.deadlineExtensions?.length ? `3px solid ${deadlineStyle(a.deadlineExtensions.at(-1)).text}` : undefined, borderRadius: 8, padding: "10px 12px", position: "relative" }}>
                     <span style={{ width: 10, height: 10, borderRadius: 2, background: project?.color ?? color.neutral }} />
                     <span style={{ fontSize: 12.5, fontWeight: 600, display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.projectName}</span>
-                      {!rowIsActive && (
+                      {projectIsTentative && (
+                        <span
+                          title="Project not confirmed yet — shown on the board but doesn't count toward capacity. Confirm it on the Projects page."
+                          style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "1px 6px", borderRadius: 4, border: `1px dashed ${color.textMeta}`, color: color.textMuted, flexShrink: 0 }}
+                        >
+                          Tentative
+                        </span>
+                      )}
+                      {!rowIsActive && !projectIsTentative && (
                         <span
                           title={
                             isCompletedProject
@@ -534,7 +624,10 @@ export function AllocationPage() {
                       )}
                     </span>
                     <span style={{ fontSize: 12, color: color.textSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.work}</span>
-                    <span style={{ fontFamily: fontMono, fontSize: 11, color: color.textMuted }}>{a.start} → {a.end}</span>
+                    <div style={{ fontSize: 11, color: color.textMuted }}>
+                      <span style={{ fontFamily: fontMono }}>{a.start} → {a.end}</span>
+                      {!!a.deadlineExtensions?.length && <div style={{ marginTop: 5 }}><DeadlineBadge extension={a.deadlineExtensions.at(-1)} onClick={() => setDeadlineId(a.id)} /></div>}
+                    </div>
                     {isOwner ? (
                       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <button onClick={() => updateAlloc.mutate({ id: a.id, alloc: Math.max(5, a.alloc - 5) })} style={stepperButtonStyle}>−</button>
@@ -562,11 +655,28 @@ export function AllocationPage() {
                       <span />
                     )}
                     {isOwner ? (
-                      <div style={{ position: "relative" }}>
+                      <div ref={(el) => { if (a.id === movingId) moveAnchorRef.current = el; }} style={{ display: "flex", gap: 6 }}>
+                        {rowIsActive && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await completeAssignment.mutateAsync(a.id);
+                                showToast(`${a.projectName} marked done — no longer counts toward capacity`);
+                              } catch (err) {
+                                showToast(err instanceof ApiError ? err.message : "Could not mark as done");
+                              }
+                            }}
+                            disabled={a.start >= today || completeAssignment.isPending}
+                            title={a.start >= today ? "Starts today — remove it instead" : "Finished — end this assignment yesterday so it stops counting"}
+                            style={{ height: 26, padding: "0 10px", border: `1px solid ${color.controlBorder}`, borderRadius: 7, fontSize: 10, fontWeight: 600, textTransform: "uppercase", background: color.surface, color: color.successText, cursor: a.start >= today ? "not-allowed" : "pointer", opacity: a.start >= today ? 0.5 : 1 }}
+                          >
+                            Done
+                          </button>
+                        )}
                         <button onClick={() => setMovingId(movingId === a.id ? null : a.id)} style={{ height: 26, padding: "0 10px", border: `1px solid ${color.controlBorder}`, borderRadius: 7, fontSize: 10, fontWeight: 600, textTransform: "uppercase", background: color.surface, cursor: "pointer" }}>
                           Move
                         </button>
-                        {movingId === a.id && <MovePopover assignment={a} people={people} projectsById={projectsById} assignments={assignments} today={today} onClose={() => setMovingId(null)} />}
+                        {movingId === a.id && <MovePopover assignment={a} people={people} projectsById={projectsById} assignments={assignments} today={today} anchorRef={moveAnchorRef} onClose={() => setMovingId(null)} />}
                       </div>
                     ) : (
                       <span />
@@ -583,6 +693,11 @@ export function AllocationPage() {
                         <CloseIcon width={13} height={13} />
                       </button>
                     )}
+                    {!!a.deadlineExtensions?.length && <div style={{ gridColumn: "1 / -1", display: "flex", flexWrap: "wrap", gap: "6px 18px", fontSize: 12, color: color.textSecondary }}>
+                      <span>{a.deadlineExtensions.at(-1)!.changeType === "DeadlineMissed" ? "Missed" : "Previous"}: <strong style={{ color: deadlineStyle(a.deadlineExtensions.at(-1)).text }}>{a.deadlineExtensions.at(-1)!.previousDeadline}</strong></span>
+                      <span>{a.deadlineExtensions.at(-1)!.changeType === "TentativeDeadline" ? "Tentative date" : "Revised date"}: <strong>{a.deadlineExtensions.at(-1)!.newDeadline}</strong></span>
+                      <button onClick={() => setDeadlineId(a.id)} style={{ background: "none", border: 0, padding: 0, color: color.infoText, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>View reason{a.deadlineExtensions.length > 1 ? ` / ${a.deadlineExtensions.length} changes` : ""}</button>
+                    </div>}
                   </div>
                     );
                   })()
@@ -593,6 +708,7 @@ export function AllocationPage() {
         </div>
       )}
       {isOwner && <NewProjectModal open={newProjectOpen} onClose={() => setNewProjectOpen(false)} />}
+      <DeadlineHistory assignment={assignments.find((a) => a.id === deadlineId) ?? null} onClose={() => setDeadlineId(null)} />
     </Shell>
   );
 }

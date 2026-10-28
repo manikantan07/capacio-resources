@@ -188,6 +188,7 @@ public class ActivityService(IDeliveryHubDbContext db, IActivityLogger logger)
         current.Alloc = before.Alloc;
         current.Start = before.Start;
         current.End = before.End;
+        current.DeadlineExtensions = before.DeadlineExtensions;
 
         return new ActivityEntry { EntityType = "Assignment", EntityId = entry.EntityId, Label = entry.Label, BeforeJson = currentSnapshot, AfterJson = entry.BeforeJson };
     }

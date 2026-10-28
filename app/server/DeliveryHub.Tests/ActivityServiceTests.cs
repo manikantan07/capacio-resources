@@ -36,6 +36,27 @@ public class ActivityServiceTests
     }
 
     [Fact]
+    public async Task EditedWork_IsReturnedAcrossAssignmentsProjectsAndPeople_AndUndoRestoresIt()
+    {
+        var (db, people, projects, assignments, activity) = BuildStack();
+        using var context = db;
+        var person = await people.CreateAsync(new CreatePersonRequest("Test Person", "React"));
+        var project = await projects.CreateAsync(new CreateProjectRequest("Test Project", null, "Style support", "React", null, null, ProjectState.Active));
+        var assignment = await assignments.CreateAsync(new CreateAssignmentRequest(person.Id, project.Id, "Style support", 50, Today, Today.AddDays(30)));
+        const string work = "Style support, and new updates";
+
+        await assignments.UpdateAsync(assignment.Id, new(work, 50, assignment.Start, assignment.End));
+        db.ChangeTracker.Clear();
+        Assert.Equal(work, (await assignments.GetAllAsync()).Single().Work);
+        Assert.Equal(work, (await projects.GetLiveMatrixAsync()).Single().Cells.Single().Work);
+        Assert.Equal(work, (await people.GetByIdAsync(person.Id)).Assignments.Single().Work);
+
+        var edit = await db.ActivityLogs.SingleAsync(log => log.ActionType == ActivityActionType.AssignmentEdited);
+        Assert.True((await activity.UndoAsync([edit.Id])).Outcomes.Single().Success);
+        Assert.Equal("Style support", (await projects.GetLiveMatrixAsync()).Single().Cells.Single().Work);
+    }
+
+    [Fact]
     public async Task Undo_OfPersonCreate_DeletesThePerson()
     {
         var (db, people, _, _, activity) = BuildStack();

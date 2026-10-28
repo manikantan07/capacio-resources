@@ -1,6 +1,6 @@
 export type PersonType = "FullTime" | "PartTime" | "Contract" | "Intern";
 export type PersonStatus = "Active" | "OnLeave" | "SickLeave" | "NoticePeriod";
-export type ProjectState = "Active" | "Backlog" | "Completed";
+export type ProjectState = "Active" | "Backlog" | "Completed" | "Tentative";
 export type LoadBand = "Available" | "PartiallyAvailable" | "FullyAllocated" | "OverAllocated";
 export type SkillMatchLevel = "None" | "Partial" | "Full";
 
@@ -14,6 +14,8 @@ export interface AssignmentSummary {
   start: string;
   end: string;
   active: boolean;
+  /** On an unconfirmed project and in its date range — shown, but not counted in load. */
+  tentative: boolean;
 }
 
 export interface Person {
@@ -36,6 +38,8 @@ export interface Person {
   bandLabel: string;
   bandShortLabel: string;
   assignments: AssignmentSummary[];
+  /** Alloc on tentative (unconfirmed) projects — not included in `load`. */
+  tentativeLoad: number;
 }
 
 export interface ProjectPersonCell {
@@ -63,6 +67,17 @@ export interface Project {
   cells: ProjectPersonCell[];
 }
 
+export type DeadlineChangeType = "DeadlineMissed" | "DeadlineExtended" | "Rescheduled" | "Backlog" | "OnHold" | "TentativeDeadline";
+
+export interface DeadlineExtension {
+  previousDeadline: string;
+  newDeadline: string;
+  reason: string;
+  recordedAt: string;
+  changeType: DeadlineChangeType;
+  reasonCategory: string;
+}
+
 export interface Assignment {
   id: string;
   personId: string;
@@ -74,6 +89,7 @@ export interface Assignment {
   start: string;
   end: string;
   active: boolean;
+  deadlineExtensions: DeadlineExtension[];
 }
 
 export interface MovePreview {
@@ -135,7 +151,7 @@ export interface MarkCompleteResult {
 
 export type ActivityActionType =
   | "PersonCreated" | "PersonUpdated" | "PersonDeleted"
-  | "ProjectCreated" | "ProjectMarkedComplete" | "ProjectReopened"
+  | "ProjectCreated" | "ProjectMarkedComplete" | "ProjectReopened" | "ProjectConfirmed"
   | "AssignmentCreated" | "AssignmentAllocUpdated" | "AssignmentDeleted" | "AssignmentReassigned"
   | "Undo";
 

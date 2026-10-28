@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace DeliveryHub.Application.Services;
 
 public class ProjectNotFoundException(Guid id) : Exception($"Project '{id}' was not found.");
+public class ProjectNotTentativeException(string name) : Exception($"{name} is already confirmed.");
 public class DuplicateProjectNameException(string name) : Exception($"A project named '{name}' already exists.");
 
 public class ProjectsService(IDeliveryHubDbContext db, IDateProvider clock, IActivityLogger activity)
@@ -101,6 +102,21 @@ public class ProjectsService(IDeliveryHubDbContext db, IDateProvider clock, IAct
         return new MarkCompleteResult(freedCount, message);
     }
 
+    /// <summary>Tentative → Active: the project's assignments start counting toward capacity.</summary>
+    public async Task ConfirmAsync(Guid id, CancellationToken ct = default)
+    {
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct)
+            ?? throw new ProjectNotFoundException(id);
+        if (project.State != ProjectState.Tentative) throw new ProjectNotTentativeException(project.Name);
+        var before = CloneProject(project);
+        AllocationRules.Confirm(project);
+        await db.SaveChangesAsync(ct);
+
+        await activity.LogAsync(
+            ActivityActionType.ProjectConfirmed, $"{project.Name} confirmed — its work now counts toward capacity",
+            [ActivitySnapshot.Entry("Project", project.Id, project.Name, before, project)], ct);
+    }
+
     // Rule 6: reopen — does not restore truncated end dates.
     public async Task ReopenAsync(Guid id, CancellationToken ct = default)
     {
@@ -123,7 +139,8 @@ public class ProjectsService(IDeliveryHubDbContext db, IDateProvider clock, IAct
 
     private static Assignment CloneAssignment(Assignment a) => new()
     {
-        Id = a.Id, PersonId = a.PersonId, ProjectId = a.ProjectId, Work = a.Work, Alloc = a.Alloc, Start = a.Start, End = a.End
+        Id = a.Id, PersonId = a.PersonId, ProjectId = a.ProjectId, Work = a.Work, Alloc = a.Alloc, Start = a.Start, End = a.End,
+        DeadlineExtensions = a.DeadlineExtensions.ToList()
     };
 
     public async Task<CompletedStatsDto> GetCompletedStatsAsync(CancellationToken ct = default)
@@ -166,9 +183,13 @@ public class ProjectsService(IDeliveryHubDbContext db, IDateProvider clock, IAct
     private ProjectDto ToProjectDto(Project project, List<Assignment> assignments, IReadOnlyDictionary<Guid, Person> peopleById)
     {
         var today = clock.Today;
+        // A tentative project's own staffing still shows here (it just doesn't count toward
+        // people's load), so it doesn't look unstaffed.
         var cells = assignments
             .Select(a => new ProjectPersonCellDto(
-                a.PersonId, a.Id, a.Alloc, AllocationRules.IsActive(a, project, today), a.Work, a.Start, a.End))
+                a.PersonId, a.Id, a.Alloc,
+                AllocationRules.IsActive(a, project, today) || AllocationRules.IsTentative(a, project, today),
+                a.Work, a.Start, a.End))
             .ToList();
 
         var activeCells = cells.Where(c => c.Active).ToList();

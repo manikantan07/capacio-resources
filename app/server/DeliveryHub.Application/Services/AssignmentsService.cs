@@ -9,6 +9,8 @@ namespace DeliveryHub.Application.Services;
 
 public class AssignmentNotFoundException(Guid id) : Exception($"Assignment '{id}' was not found.");
 public class InvalidDateRangeException() : Exception("End date can't be before the start date.");
+public class InvalidDeadlineExtensionException(string message) : Exception(message);
+public class AssignmentCompletionException(string message) : Exception(message);
 
 public class AssignmentsService(IDeliveryHubDbContext db, IDateProvider clock, IActivityLogger activity)
 {
@@ -81,7 +83,58 @@ public class AssignmentsService(IDeliveryHubDbContext db, IDateProvider clock, I
             throw new InvalidDateRangeException();
         }
 
+        var previous = request.PreviousDeadline ?? request.MissedDeadline;
+        var changeType = request.DeadlineChangeType ?? "DeadlineMissed";
+        if (request.DeadlineChangeType is not null && changeType is not
+            ("DeadlineMissed" or "DeadlineExtended" or "Rescheduled" or "Backlog" or "OnHold" or "TentativeDeadline"))
+            throw new InvalidDeadlineExtensionException("Select a valid deadline change type.");
+        if (request.PreviousDeadline is not null && request.DeadlineChangeType is null)
+            throw new InvalidDeadlineExtensionException("Select a deadline change type.");
+        if (request.PreviousDeadline is not null && request.MissedDeadline is not null)
+            throw new InvalidDeadlineExtensionException("Provide only one previous deadline.");
+
+        if (previous is { } previousDate)
+        {
+            if (previousDate < request.Start || previousDate > assignment.End)
+                throw new InvalidDeadlineExtensionException("The previous deadline must be on or after the start and no later than the current end date.");
+            if (assignment.DeadlineExtensions.Count > 0 && previousDate != assignment.End)
+                throw new InvalidDeadlineExtensionException("The previous deadline must match the current end date for another change.");
+            if (changeType == "DeadlineMissed" && (previousDate >= clock.Today || request.End <= previousDate))
+                throw new InvalidDeadlineExtensionException("A missed deadline must be in the past and before the new end date.");
+            if (changeType == "DeadlineExtended" && request.End <= previousDate)
+                throw new InvalidDeadlineExtensionException("An extended deadline must be later than the previous deadline.");
+            if (request.DeadlineChangeType is not null && string.IsNullOrWhiteSpace(request.ReasonCategory))
+                throw new InvalidDeadlineExtensionException("Select or enter a reason for the deadline change.");
+        }
+        else if (request.End != assignment.End)
+        {
+            throw new InvalidDeadlineExtensionException("Record a deadline change type and reason when changing the end date.");
+        }
+
+        if (request.ExtensionReason?.Trim().Length > 2000)
+            throw new InvalidDeadlineExtensionException("The description must be no longer than 2,000 characters.");
+        if (request.ReasonCategory?.Trim().Length > 120)
+            throw new InvalidDeadlineExtensionException("The reason must be no longer than 120 characters.");
+        if (previous is null && request.DeadlineChangeType == "DeadlineMissed" && assignment.DeadlineExtensions.LastOrDefault() is { } latest
+            && (latest.PreviousDeadline >= clock.Today || latest.NewDeadline <= latest.PreviousDeadline))
+            throw new InvalidDeadlineExtensionException("This date change cannot be classified as a missed deadline.");
+        if (previous is null && request.DeadlineChangeType == "DeadlineExtended" && assignment.DeadlineExtensions.LastOrDefault() is { } extended
+            && extended.NewDeadline <= extended.PreviousDeadline)
+            throw new InvalidDeadlineExtensionException("This date change cannot be classified as an extension.");
+        if (previous is null && assignment.DeadlineExtensions.Count == 0 && (request.DeadlineChangeType is not null || request.ReasonCategory is not null))
+            throw new InvalidDeadlineExtensionException("Provide a previous deadline to record the date change.");
+
         var before = CloneAssignment(assignment);
+        if (previous is { } previousDeadline)
+            assignment.DeadlineExtensions.Add(new(previousDeadline, request.End, request.ExtensionReason?.Trim() ?? "", DateTime.UtcNow)
+            { ChangeType = changeType, ReasonCategory = request.ReasonCategory?.Trim() ?? "" });
+        else if (assignment.DeadlineExtensions.Count > 0)
+            assignment.DeadlineExtensions[^1] = assignment.DeadlineExtensions[^1] with
+            {
+                Reason = request.ExtensionReason?.Trim() ?? assignment.DeadlineExtensions[^1].Reason,
+                ChangeType = request.DeadlineChangeType ?? assignment.DeadlineExtensions[^1].ChangeType,
+                ReasonCategory = request.ReasonCategory?.Trim() ?? assignment.DeadlineExtensions[^1].ReasonCategory
+            };
         assignment.Work = request.Work;
         assignment.Alloc = Math.Clamp(request.Alloc, 5, 100);
         assignment.Start = request.Start;
@@ -94,6 +147,37 @@ public class AssignmentsService(IDeliveryHubDbContext db, IDateProvider clock, I
         var label = $"{people.GetValueOrDefault(assignment.PersonId)?.Name} — {projects.GetValueOrDefault(assignment.ProjectId)?.Name}";
         await activity.LogAsync(
             ActivityActionType.AssignmentEdited, $"{label} updated — {assignment.Start} → {assignment.End}, {assignment.Alloc}%",
+            [ActivitySnapshot.Entry("Assignment", assignment.Id, label, before, assignment)], ct);
+
+        return ToDto(assignment, people, projects);
+    }
+
+    /// <summary>
+    /// Marks one person's part of a project as done: the end date becomes yesterday, so the
+    /// assignment stops counting toward capacity today while its history is kept. Unlike
+    /// <see cref="UpdateAsync"/>, finishing early isn't a deadline change, so nothing is
+    /// added to the deadline history. Logged as an edit, so the Activity page can undo it.
+    /// </summary>
+    public async Task<AssignmentDto> CompleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var assignment = await db.Assignments.FirstOrDefaultAsync(a => a.Id == id, ct)
+            ?? throw new AssignmentNotFoundException(id);
+        var yesterday = clock.Today.AddDays(-1);
+        if (assignment.End < clock.Today)
+            throw new AssignmentCompletionException("This assignment has already ended.");
+        if (assignment.Start > yesterday)
+            throw new AssignmentCompletionException("This assignment hasn't started before today — remove it instead.");
+
+        var before = CloneAssignment(assignment);
+        assignment.End = yesterday;
+        await db.SaveChangesAsync(ct);
+
+        var people = await db.People.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
+        var projects = await db.Projects.AsNoTracking().ToDictionaryAsync(p => p.Id, ct);
+
+        var label = $"{people.GetValueOrDefault(assignment.PersonId)?.Name} — {projects.GetValueOrDefault(assignment.ProjectId)?.Name}";
+        await activity.LogAsync(
+            ActivityActionType.AssignmentEdited, $"{label} marked done — ended {assignment.End}",
             [ActivitySnapshot.Entry("Assignment", assignment.Id, label, before, assignment)], ct);
 
         return ToDto(assignment, people, projects);
@@ -141,7 +225,8 @@ public class AssignmentsService(IDeliveryHubDbContext db, IDateProvider clock, I
 
     private static Assignment CloneAssignment(Assignment a) => new()
     {
-        Id = a.Id, PersonId = a.PersonId, ProjectId = a.ProjectId, Work = a.Work, Alloc = a.Alloc, Start = a.Start, End = a.End
+        Id = a.Id, PersonId = a.PersonId, ProjectId = a.ProjectId, Work = a.Work, Alloc = a.Alloc, Start = a.Start, End = a.End,
+        DeadlineExtensions = a.DeadlineExtensions.ToList()
     };
 
     /// <summary>For the Move popover — what each other person's load would become if this assignment moved to them.</summary>
@@ -188,6 +273,6 @@ public class AssignmentsService(IDeliveryHubDbContext db, IDateProvider clock, I
         var active = project is not null && AllocationRules.IsActive(a, project, clock.Today);
         return new AssignmentDto(
             a.Id, a.PersonId, peopleById.GetValueOrDefault(a.PersonId)?.Name ?? "Former member",
-            a.ProjectId, project?.Name ?? "(unknown project)", a.Work, a.Alloc, a.Start, a.End, active);
+            a.ProjectId, project?.Name ?? "(unknown project)", a.Work, a.Alloc, a.Start, a.End, active, a.DeadlineExtensions.ToList());
     }
 }

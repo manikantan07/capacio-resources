@@ -39,6 +39,28 @@ public class AllocationRulesTests
         Assert.False(AllocationRules.IsActive(assignment, project, Today));
     }
 
+    [Fact]
+    public void TentativeProject_IsShownSeparately_NotCountedInLoad()
+    {
+        var active = MakeProject();
+        var tentative = MakeProject(ProjectState.Tentative);
+        var projects = new[] { active, tentative }.ToDictionary(p => p.Id);
+        var assignments = new[]
+        {
+            MakeAssignment(active.Id, Today.AddDays(-1), Today.AddDays(1), 50),
+            MakeAssignment(tentative.Id, Today.AddDays(-1), Today.AddDays(1), 25),
+            MakeAssignment(tentative.Id, Today.AddDays(2), Today.AddDays(9), 25), // not started yet
+        };
+
+        Assert.False(AllocationRules.IsActive(assignments[1], tentative, Today));
+        Assert.Equal(50, AllocationRules.CalculateLoad(assignments, id => projects.GetValueOrDefault(id), Today));
+        Assert.Equal(25, AllocationRules.CalculateTentativeLoad(assignments, id => projects.GetValueOrDefault(id), Today));
+
+        AllocationRules.Confirm(tentative);
+        Assert.Equal(75, AllocationRules.CalculateLoad(assignments, id => projects.GetValueOrDefault(id), Today));
+        Assert.Equal(0, AllocationRules.CalculateTentativeLoad(assignments, id => projects.GetValueOrDefault(id), Today));
+    }
+
     // Rule 2
     [Fact]
     public void CalculateLoad_SumsOnlyActiveAssignments_CanExceed100()

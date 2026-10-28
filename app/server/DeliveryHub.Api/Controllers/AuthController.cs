@@ -36,7 +36,8 @@ public class AuthController(AuthService authService, IConfiguration configuratio
             issuer: jwtSection["Issuer"],
             audience: jwtSection["Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(12),
+            // "Remember me" sessions outlive a working day so returning users stay signed in.
+            expires: request.RememberMe ? DateTime.UtcNow.AddDays(30) : DateTime.UtcNow.AddHours(12),
             signingCredentials: creds);
 
         return Ok(new

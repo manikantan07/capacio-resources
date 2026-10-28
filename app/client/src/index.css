@@ -21,3 +21,38 @@ body {
 button {
   font-family: inherit;
 }
+
+.allocation-assignment-row {
+  grid-template-columns: 12px minmax(100px, 1.1fr) minmax(100px, 1.4fr) 180px 108px 30px 124px 28px;
+}
+
+@media (max-width: 1100px) {
+  .allocation-assignment-row {
+    grid-template-columns: 12px minmax(100px, 1fr) minmax(100px, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .allocation-shell > aside { width: 56px !important; flex-basis: 56px !important; }
+  .allocation-shell > aside > div:first-child { padding: 16px 14px !important; }
+  .allocation-shell > aside > div:first-child > span,
+  .allocation-shell nav a > span:not(:first-child),
+  .allocation-shell [aria-label="Account menu"] > div:not(:first-child),
+  .allocation-shell [aria-label="Account menu"] > svg { display: none; }
+  .allocation-shell nav { padding: 4px !important; }
+  .allocation-shell nav a { justify-content: center; padding: 0 !important; }
+  .allocation-shell > aside > div:last-child { padding: 14px !important; }
+  .allocation-shell > aside > div:last-child > div { width: 190px; }
+  .allocation-shell header { height: auto !important; flex-basis: auto !important; flex-wrap: wrap; padding: 12px !important; gap: 10px !important; }
+  .allocation-shell header > div:first-child { flex-basis: 100% !important; }
+  .allocation-shell header > div:nth-child(2) { padding: 0 6px !important; font-size: 10px !important; white-space: nowrap; }
+  .allocation-shell header > button { font-size: 11px; padding: 0 8px; }
+  .allocation-shell main { padding: 12px !important; }
+  .allocation-layout { height: auto !important; }
+  .allocation-chart { flex: none !important; height: 510px; }
+  .allocation-assignments { max-height: none !important; }
+  .allocation-assignment-row { grid-template-columns: 12px minmax(0, 1fr) minmax(0, 1fr); gap: 10px !important; }
+  .allocation-assignment-row > div:nth-child(4) { grid-column: 1 / -1; }
+  .allocation-assignment-row > div:nth-child(5) { grid-column: 1 / 3; }
+  .allocation-assignment-row > div:nth-child(7) { grid-column: 1 / 3; }
+}

@@ -41,6 +41,11 @@ public class AssignmentsController(AssignmentsService service) : ControllerBase
     public async Task<ActionResult<AssignmentDto>> Reassign(Guid id, ReassignRequest request, CancellationToken ct) =>
         Ok(await service.ReassignAsync(id, request, ct));
 
+    [HttpPost("{id:guid}/complete")]
+    [Authorize(Roles = "Owner")]
+    public async Task<ActionResult<AssignmentDto>> Complete(Guid id, CancellationToken ct) =>
+        Ok(await service.CompleteAsync(id, ct));
+
     [HttpGet("{id:guid}/move-preview")]
     public async Task<ActionResult<List<MovePreviewDto>>> MovePreview(Guid id, CancellationToken ct) =>
         Ok(await service.GetMovePreviewAsync(id, ct));

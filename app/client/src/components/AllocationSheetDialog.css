@@ -1,0 +1,27 @@
+.sheet-preview { display: flex; flex-direction: column; height: 100%; min-height: 0; background: #fff; }
+.sheet-preview-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #dedede; }
+.sheet-preview-heading { flex: 1; min-width: 220px; }
+.sheet-preview-heading h2 { margin: 0; font-size: 17px; line-height: 1.4; font-weight: 600; overflow-wrap: anywhere; }
+.sheet-preview-meta { margin-top: 3px; font-size: 12px; color: #666; }
+.sheet-preview-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.sheet-preview-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 20px; }
+.sheet-preview-progress { height: 4px; flex-shrink: 0; }
+.sheet-preview-table-wrap { flex: 1; min-height: 0; overflow: auto; border-top: 1px solid #dedede; }
+.sheet-preview-table { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: max-content; min-width: 100%; font-size: 12px; }
+.sheet-preview-table th, .sheet-preview-table td { padding: 10px 12px; border-right: 1px solid #d4d4d4; border-bottom: 1px solid #d4d4d4; vertical-align: middle; overflow-wrap: anywhere; white-space: pre-wrap; }
+.sheet-preview-table th { position: sticky; top: 0; z-index: 2; background: #203864; color: #fff; font-size: 11px; font-weight: 600; text-align: center; }
+.sheet-preview-table th:first-child { left: 0; z-index: 3; }
+.sheet-preview-table td:first-child { position: sticky; left: 0; z-index: 1; }
+.sheet-preview-empty { padding: 32px 20px; color: #666; font-size: 13px; }
+.sheet-preview-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 10px 20px; border-top: 1px solid #dedede; color: #555; font-size: 11px; }
+.sheet-preview-footer span { display: inline-flex; align-items: center; gap: 6px; }
+.sheet-preview-swatch { width: 10px; height: 10px; flex-shrink: 0; }
+@media (max-width: 600px) {
+  .sheet-preview-toolbar, .sheet-preview-controls { padding: 10px 12px; }
+  .sheet-preview-heading { flex-basis: 100%; }
+  .sheet-preview-heading h2 { font-size: 15px; }
+  .sheet-preview-actions { margin-left: auto; }
+  .sheet-preview-controls > .MuiTabs-root { max-width: 100%; }
+  .sheet-preview-table th:first-child, .sheet-preview-table td:first-child { position: static; }
+  .sheet-preview-footer { padding: 8px 12px; }
+}

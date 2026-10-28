@@ -21,7 +21,9 @@ interface AuthContextValue {
   user: AuthUser | null;
   /** True until the stored token has been checked against the server at least once. */
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  /** `remember` keeps the session across browser restarts (localStorage) instead of
+   *  only for this browser session (sessionStorage). */
+  signIn: (email: string, password: string, remember: boolean) => Promise<void>;
   signOut: () => void;
 }
 
@@ -29,8 +31,13 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export const STORAGE_KEY = "deliveryhub.authUser";
 
 function readStoredUser(): AuthUser | null {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = localStorage.getItem(STORAGE_KEY) ?? sessionStorage.getItem(STORAGE_KEY);
   return stored ? (JSON.parse(stored) as AuthUser) : null;
+}
+
+function clearStoredUser() {
+  localStorage.removeItem(STORAGE_KEY);
+  sessionStorage.removeItem(STORAGE_KEY);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -52,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(() => setLoading(false))
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
-          localStorage.removeItem(STORAGE_KEY);
+          clearStoredUser();
           setUser(null);
         }
         setLoading(false);
@@ -60,18 +67,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, remember: boolean) => {
     const response = await api.post<{ token: string; email: string; name: string; role: "Owner" | "Viewer" }>(
       "/api/auth/login",
-      { email, password },
+      { email, password, rememberMe: remember },
     );
     const next: AuthUser = response;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    clearStoredUser();
+    (remember ? localStorage : sessionStorage).setItem(STORAGE_KEY, JSON.stringify(next));
     setUser(next);
   };
 
   const signOut = () => {
-    localStorage.removeItem(STORAGE_KEY);
+    clearStoredUser();
     setUser(null);
   };
 

@@ -167,15 +167,17 @@ public class PeopleService(IDeliveryHubDbContext db, IDateProvider clock, IActiv
         var today = clock.Today;
         var load = AllocationRules.CalculateLoad(assignments, pid => projectsById.GetValueOrDefault(pid), today);
         var band = AllocationRules.GetLoadBand(load);
+        var tentativeLoad = AllocationRules.CalculateTentativeLoad(assignments, pid => projectsById.GetValueOrDefault(pid), today);
 
         var summaries = assignments
             .Select(a =>
             {
                 var project = projectsById.GetValueOrDefault(a.ProjectId);
                 var active = project is not null && AllocationRules.IsActive(a, project, today);
+                var tentative = project is not null && AllocationRules.IsTentative(a, project, today);
                 return new AssignmentSummaryDto(
                     a.Id, a.ProjectId, project?.Name ?? "(unknown project)", project?.Color ?? "#8A9099",
-                    a.Work, a.Alloc, a.Start, a.End, active);
+                    a.Work, a.Alloc, a.Start, a.End, active, tentative);
             })
             .OrderByDescending(a => a.Active)
             .ThenBy(a => a.Start)
@@ -186,6 +188,6 @@ public class PeopleService(IDeliveryHubDbContext db, IDateProvider clock, IActiv
             person.Email, person.Phone, person.Location, person.Status, person.Hours, person.Joined,
             person.Skills, person.Notes,
             load, band, AllocationRules.LoadBandLabel(band), AllocationRules.LoadBandShortLabel(band),
-            summaries);
+            summaries, tentativeLoad);
     }
 }

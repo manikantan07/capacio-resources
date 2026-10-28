@@ -3,6 +3,7 @@ import { api } from "../api/client";
 import type {
   ActivityHistoryPage,
   Assignment,
+  DeadlineChangeType,
   CompletedProject,
   CompletedStats,
   MarkCompleteResult,
@@ -73,6 +74,18 @@ export const useMarkComplete = () => {
   });
 };
 
+/** Tentative → Active: the project's work starts counting toward capacity. */
+export const useConfirmProject = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post<void>(`/api/projects/${id}/confirm`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["people"] });
+    },
+  });
+};
+
 export const useReopenProject = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -115,8 +128,8 @@ export const useUpdateAlloc = () => {
 export const useUpdateAssignment = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, work, alloc, start, end }: { id: string; work: string; alloc: number; start: string; end: string }) =>
-      api.put<Assignment>(`/api/assignments/${id}`, { work, alloc, start, end }),
+    mutationFn: ({ id, ...request }: { id: string; work: string; alloc: number; start: string; end: string; previousDeadline?: string; extensionReason?: string; deadlineChangeType?: DeadlineChangeType; reasonCategory?: string }) =>
+      api.put<Assignment>(`/api/assignments/${id}`, request),
     onSuccess: () => invalidateAssignmentGraph(qc),
   });
 };
@@ -125,6 +138,15 @@ export const useDeleteAssignment = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete<void>(`/api/assignments/${id}`),
+    onSuccess: () => invalidateAssignmentGraph(qc),
+  });
+};
+
+/** Marks one person's part as done — the server sets the end date to yesterday. */
+export const useCompleteAssignment = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.post<Assignment>(`/api/assignments/${id}/complete`),
     onSuccess: () => invalidateAssignmentGraph(qc),
   });
 };

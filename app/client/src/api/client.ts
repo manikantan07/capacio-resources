@@ -10,11 +10,12 @@ export class ApiError extends Error {
 }
 
 // This module can't use the React AuthContext directly, so it reads the same
-// localStorage key AuthContext writes to (STORAGE_KEY there) to attach the bearer
-// token every request needs.
+// storage key AuthContext writes to (STORAGE_KEY there) to attach the bearer
+// token every request needs. "Remember me" sessions live in localStorage; others in
+// sessionStorage (cleared when the browser closes).
 function authHeader(): Record<string, string> {
   try {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY) ?? sessionStorage.getItem(AUTH_STORAGE_KEY);
     const token = stored ? (JSON.parse(stored) as { token?: string }).token : undefined;
     return token ? { Authorization: `Bearer ${token}` } : {};
   } catch {
@@ -31,6 +32,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 401 && path !== "/api/auth/login" && path !== "/api/auth/me") {
     // Token missing/expired/invalid — drop it and send the user back to sign in.
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    sessionStorage.removeItem(AUTH_STORAGE_KEY);
     if (location.hash !== "#/signin") location.hash = "#/signin";
   }
 

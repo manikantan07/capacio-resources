@@ -4,6 +4,8 @@ import MenuItem from "@mui/material/MenuItem";
 import { Shell } from "../components/Shell";
 import { AvatarCircle } from "../components/AvatarCircle";
 import { LoadBadge, LoadValue } from "../components/LoadBadge";
+import { StatusBadge } from "../components/StatusBadge";
+import { isAway } from "../lib/allocationRules";
 import { AddMemberModal } from "../components/AddMemberModal";
 import { ProfileDrawer } from "../components/ProfileDrawer";
 import { CloseIcon, MailIcon, PhoneIcon, PinIcon, CalendarDotIcon } from "../components/Icons";
@@ -82,9 +84,14 @@ function MemberCard({ person, isOwner }: { person: Person; isOwner: boolean }) {
             borderBottom: `1px solid ${color.hairline}`,
           }}
         >
-          <LoadBadge band={person.band} label={person.bandLabel} />
+          {isAway(person.status) ? <StatusBadge status={person.status} /> : <LoadBadge band={person.band} label={person.bandLabel} />}
           <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
             <LoadValue load={person.load} band={person.band} />
+            {person.tentativeLoad > 0 && (
+              <span title={`If confirmed: ${person.load + person.tentativeLoad}%`} style={{ fontSize: 11, color: color.textMeta }}>
+                +{person.tentativeLoad}% tentative
+              </span>
+            )}
             <span style={{ fontSize: 11, color: color.textMeta }}>· {person.hours}h/wk</span>
           </div>
         </div>

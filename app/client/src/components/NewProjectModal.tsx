@@ -16,7 +16,7 @@ const schema = z.object({
   tech: z.string().optional(),
   plannedStart: z.string().optional(),
   plannedEnd: z.string().optional(),
-  state: z.enum(["Active", "Backlog", "Completed"]),
+  state: z.enum(["Active", "Backlog", "Completed", "Tentative"]),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -75,8 +75,14 @@ export function NewProjectModal({ open, onClose, onCreated }: NewProjectModalPro
           name="state"
           control={control}
           render={({ field }) => (
-            <TextField {...field} select label="State">
+            <TextField
+              {...field}
+              select
+              label="State"
+              helperText={field.value === "Tentative" ? "Not confirmed yet — its work is shown but doesn't count toward capacity until you confirm it." : undefined}
+            >
               <MenuItem value="Active">Active</MenuItem>
+              <MenuItem value="Tentative">Tentative — not confirmed</MenuItem>
               <MenuItem value="Backlog">Backlog</MenuItem>
             </TextField>
           )}

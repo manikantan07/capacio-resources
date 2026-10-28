@@ -6,9 +6,26 @@
 
 import type { Assignment, LoadBand, Person, Project } from "../types";
 
+// Only confirmed projects count toward load: tentative (unconfirmed) work is shown
+// separately via isTentative / calculateTentativeLoad.
 export function isActive(assignment: Assignment, project: Project | undefined, today: string): boolean {
   if (!project) return false;
-  return project.state !== "Completed" && assignment.start <= today && assignment.end >= today;
+  return project.state !== "Completed" && project.state !== "Tentative" && assignment.start <= today && assignment.end >= today;
+}
+
+export function isTentative(assignment: Assignment, project: Project | undefined, today: string): boolean {
+  return project?.state === "Tentative" && assignment.start <= today && assignment.end >= today;
+}
+
+export function calculateTentativeLoad(
+  personId: string,
+  assignments: Assignment[],
+  projectsById: Map<string, Project>,
+  today: string,
+): number {
+  return assignments
+    .filter((a) => a.personId === personId && isTentative(a, projectsById.get(a.projectId), today))
+    .reduce((sum, a) => sum + a.alloc, 0);
 }
 
 export function calculateLoad(
@@ -28,6 +45,12 @@ export function getLoadBand(load: number): LoadBand {
   if (load === 100) return "FullyAllocated";
   if (load > 0) return "PartiallyAvailable";
   return "Available";
+}
+
+/** Away people (leave / sick leave) aren't available regardless of load, so their
+ *  status replaces the capacity band. Notice period still works, so it isn't away. */
+export function isAway(status: Person["status"]): boolean {
+  return status === "OnLeave" || status === "SickLeave";
 }
 
 export const BAND_WORD: Record<LoadBand, string> = {

@@ -8,6 +8,7 @@ public enum ActivityActionType
     ProjectCreated,
     ProjectMarkedComplete,
     ProjectReopened,
+    ProjectConfirmed,
     AssignmentCreated,
     AssignmentAllocUpdated,
     AssignmentEdited,

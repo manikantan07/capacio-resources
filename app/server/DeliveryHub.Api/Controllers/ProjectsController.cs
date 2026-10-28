@@ -24,6 +24,14 @@ public class ProjectsController(ProjectsService service) : ControllerBase
     public async Task<ActionResult<MarkCompleteResult>> MarkComplete(Guid id, CancellationToken ct) =>
         Ok(await service.MarkCompleteAsync(id, ct));
 
+    [HttpPost("{id:guid}/confirm")]
+    [Authorize(Roles = "Owner")]
+    public async Task<IActionResult> Confirm(Guid id, CancellationToken ct)
+    {
+        await service.ConfirmAsync(id, ct);
+        return NoContent();
+    }
+
     [HttpPost("{id:guid}/reopen")]
     [Authorize(Roles = "Owner")]
     public async Task<IActionResult> Reopen(Guid id, CancellationToken ct)

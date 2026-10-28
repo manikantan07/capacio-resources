@@ -11,7 +11,8 @@ public record AssignmentSummaryDto(
     int Alloc,
     DateOnly Start,
     DateOnly End,
-    bool Active);
+    bool Active,
+    bool Tentative);
 
 public record PersonDto(
     Guid Id,
@@ -32,7 +33,9 @@ public record PersonDto(
     LoadBand Band,
     string BandLabel,
     string BandShortLabel,
-    List<AssignmentSummaryDto> Assignments);
+    List<AssignmentSummaryDto> Assignments,
+    /// <summary>Alloc on tentative (unconfirmed) projects — not included in <see cref="Load"/>.</summary>
+    int TentativeLoad);
 
 public record CreatePersonRequest(string Name, string? Skills);
 

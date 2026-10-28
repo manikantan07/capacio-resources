@@ -20,7 +20,9 @@ public enum ProjectState
 {
     Active,
     Backlog,
-    Completed
+    Completed,
+    /// <summary>Not confirmed yet (testing, POC, pitch). Its work is shown but doesn't count toward capacity.</summary>
+    Tentative
 }
 
 public enum LoadBand

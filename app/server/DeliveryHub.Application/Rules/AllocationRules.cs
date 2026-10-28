@@ -14,11 +14,27 @@ public readonly record struct SkillMatchResult(
 /// </summary>
 public static class AllocationRules
 {
-    // Rule 1: an assignment is "active" when the project isn't completed and today falls in [start, end].
+    // Rule 1: an assignment is "active" when the project is confirmed (not completed or
+    // tentative) and today falls in [start, end]. Only active assignments count toward load.
     public static bool IsActive(Assignment assignment, Project project, DateOnly today) =>
-        project.State != ProjectState.Completed
+        project.State is not (ProjectState.Completed or ProjectState.Tentative)
         && assignment.Start <= today
         && assignment.End >= today;
+
+    // Tentative work: in its date range on an unconfirmed project. Shown separately from
+    // load so you can see who'd be overbooked if the project is confirmed.
+    public static bool IsTentative(Assignment assignment, Project project, DateOnly today) =>
+        project.State == ProjectState.Tentative
+        && assignment.Start <= today
+        && assignment.End >= today;
+
+    public static int CalculateTentativeLoad(
+        IEnumerable<Assignment> personAssignments,
+        Func<Guid, Project?> projectLookup,
+        DateOnly today) =>
+        personAssignments
+            .Where(a => projectLookup(a.ProjectId) is { } project && IsTentative(a, project, today))
+            .Sum(a => a.Alloc);
 
     // Rule 2: a person's current load = sum of alloc over their active assignments. Can exceed 100.
     public static int CalculateLoad(
@@ -124,6 +140,8 @@ public static class AllocationRules
 
         return freedPeople.Count;
     }
+
+    public static void Confirm(Project project) => project.State = ProjectState.Active;
 
     // Rule 6: reopen project — does not restore truncated end dates.
     public static void Reopen(Project project)

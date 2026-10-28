@@ -12,7 +12,8 @@ public record AssignmentDto(
     int Alloc,
     DateOnly Start,
     DateOnly End,
-    bool Active);
+    bool Active,
+    IReadOnlyList<DeadlineExtension> DeadlineExtensions);
 
 public record CreateAssignmentRequest(
     Guid PersonId,
@@ -24,7 +25,9 @@ public record CreateAssignmentRequest(
 
 public record UpdateAllocRequest(int Alloc);
 
-public record UpdateAssignmentRequest(string Work, int Alloc, DateOnly Start, DateOnly End);
+public record UpdateAssignmentRequest(string Work, int Alloc, DateOnly Start, DateOnly End,
+    DateOnly? MissedDeadline = null, string? ExtensionReason = null,
+    DateOnly? PreviousDeadline = null, string? DeadlineChangeType = null, string? ReasonCategory = null);
 
 public record ReassignRequest(Guid NewPersonId);
 

@@ -28,8 +28,8 @@ public class ExceptionHandlingMiddleware(RequestDelegate next)
         statusCode = ex switch
         {
             PersonNotFoundException or ProjectNotFoundException or AssignmentNotFoundException => StatusCodes.Status404NotFound,
-            DuplicatePersonNameException or DuplicateProjectNameException or PersonHasActiveAssignmentsException => StatusCodes.Status409Conflict,
-            InvalidDateRangeException => StatusCodes.Status400BadRequest,
+            DuplicatePersonNameException or DuplicateProjectNameException or PersonHasActiveAssignmentsException or ProjectNotTentativeException => StatusCodes.Status409Conflict,
+            InvalidDateRangeException or InvalidDeadlineExtensionException or AssignmentCompletionException => StatusCodes.Status400BadRequest,
             InvalidCredentialsException => StatusCodes.Status401Unauthorized,
             _ => 0
         };

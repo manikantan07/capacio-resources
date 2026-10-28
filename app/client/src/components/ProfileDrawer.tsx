@@ -6,6 +6,8 @@ import { useUpdatePerson } from "../features/queries";
 import { useToast } from "./ToastProvider";
 import { ApiError } from "../api/client";
 import { LoadBadge, LoadValue } from "./LoadBadge";
+import { StatusBadge } from "./StatusBadge";
+import { isAway } from "../lib/allocationRules";
 import { CloseIcon } from "./Icons";
 import { color, fontMono } from "../theme";
 import type { Person } from "../types";
@@ -142,7 +144,7 @@ export function ProfileDrawer({ person, onClose }: ProfileDrawerProps) {
           <div style={{ marginTop: 12, paddingTop: 16, borderTop: `1px solid ${color.divider}` }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <span style={{ fontSize: 12.5, fontWeight: 600, color: color.textSecondary }}>Current work</span>
-              <LoadBadge band={person.band} label={person.bandLabel} />
+              {isAway(person.status) ? <StatusBadge status={person.status} /> : <LoadBadge band={person.band} label={person.bandLabel} />}
               <LoadValue load={person.load} band={person.band} />
             </div>
             {person.assignments.length === 0 && <div style={{ fontSize: 12, color: color.textMeta }}>No assignments.</div>}
@@ -150,7 +152,15 @@ export function ProfileDrawer({ person, onClose }: ProfileDrawerProps) {
               <div key={a.id} style={{ padding: "8px 0", borderTop: `1px solid ${color.hairline}`, fontSize: 12 }}>
                 <div style={{ fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
                   {a.projectName}
-                  {!a.active && (
+                  {a.tentative && (
+                    <span
+                      title="Project not confirmed yet — doesn't count toward capacity until it's confirmed"
+                      style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "1px 6px", borderRadius: 4, border: `1px dashed ${color.textMeta}`, color: color.textMuted }}
+                    >
+                      Tentative
+                    </span>
+                  )}
+                  {!a.active && !a.tentative && (
                     <span
                       title="Doesn't count toward this person's current capacity"
                       style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 4, background: color.hairline, color: color.textMeta }}

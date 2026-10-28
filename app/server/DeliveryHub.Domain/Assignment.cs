@@ -20,4 +20,12 @@ public class Assignment
 
     public DateOnly Start { get; set; }
     public DateOnly End { get; set; }
+    public List<DeadlineExtension> DeadlineExtensions { get; set; } = [];
+}
+
+public record DeadlineExtension(DateOnly PreviousDeadline, DateOnly NewDeadline, string Reason, DateTime RecordedAt)
+{
+    // Existing saved entries were explicitly recorded as missed deadlines.
+    public string ChangeType { get; init; } = "DeadlineMissed";
+    public string ReasonCategory { get; init; } = "";
 }

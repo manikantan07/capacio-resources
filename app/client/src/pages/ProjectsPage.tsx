@@ -6,11 +6,13 @@ import { AvatarCircle } from "../components/AvatarCircle";
 import { CheckIcon } from "../components/Icons";
 import { NewProjectModal } from "../components/NewProjectModal";
 import { StatusDot } from "../components/StatusBadge";
-import { usePeople, useLiveProjects, useMarkComplete } from "../features/queries";
+import { usePeople, useLiveProjects, useMarkComplete, useConfirmProject } from "../features/queries";
 import { useToast } from "../components/ToastProvider";
 import { useAuth } from "../auth/AuthContext";
 import { bandColors, color, fontMono } from "../theme";
 import type { Project } from "../types";
+import { projectDescription } from "../lib/projectDescription";
+import { todayIso } from "../lib/allocationRules";
 
 function cellFor(project: Project, personId: string) {
   const cells = project.cells.filter((c) => c.personId === personId);
@@ -27,14 +29,21 @@ export function ProjectsPage() {
   const { data: people } = usePeople();
   const { data: projects } = useLiveProjects();
   const markComplete = useMarkComplete();
+  const confirmProject = useConfirmProject();
   const { showToast } = useToast();
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const isOwner = user?.role === "Owner";
+  const today = todayIso();
 
   const unstaffedCount = projects?.filter((p) => p.headCount === 0).length ?? 0;
   const overAllocatedPeople = people?.filter((p) => p.band === "OverAllocated").length ?? 0;
+
+  const handleConfirm = async (project: Project) => {
+    await confirmProject.mutateAsync(project.id);
+    showToast(`${project.name} confirmed — its work now counts toward capacity`);
+  };
 
   const handleComplete = async (project: Project) => {
     const result = await markComplete.mutateAsync(project.id);
@@ -85,9 +94,19 @@ export function ProjectsPage() {
                 <div style={{ padding: "10px 12px", display: "flex", gap: 8 }}>
                   <span style={{ width: 9, height: 9, borderRadius: 2, background: project.color, marginTop: 3, flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{project.name}</div>
-                    <div style={{ fontSize: 11, color: color.textMeta, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {project.owner} · {project.tech.join(", ")}
+                    <div style={{ fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      {project.name}
+                      {project.state === "Tentative" && (
+                        <span
+                          title="Not confirmed yet — its work is shown but doesn't count toward people's capacity"
+                          style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "1px 6px", borderRadius: 4, border: `1px dashed ${color.textMeta}`, color: color.textMuted }}
+                        >
+                          Tentative
+                        </span>
+                      )}
+                    </div>
+                    <div title={projectDescription(project, today)} style={{ fontSize: 11, color: color.textMeta, overflowWrap: "anywhere", lineHeight: 1.4 }}>
+                      {project.owner && project.owner !== "—" ? `${project.owner} · ` : ""}{projectDescription(project, today)}
                     </div>
                   </div>
                 </div>
@@ -101,7 +120,7 @@ export function ProjectsPage() {
                       ) : (
                         <button
                           onClick={() => navigate(`/allocation?person=${p.id}&assignment=${cell.cells[0].assignmentId}`)}
-                          title={`${cell.active ? "" : "Not active — doesn't count toward capacity — "}${cell.cells[0].work} — ${cell.cells[0].start} to ${cell.cells[0].end} — open in Allocation`}
+                          title={`${project.state === "Tentative" ? "Tentative — doesn't count toward capacity until confirmed — " : cell.active ? "" : "Not active — doesn't count toward capacity — "}${cell.cells[0].work} — ${cell.cells[0].start} to ${cell.cells[0].end} — open in Allocation`}
                           style={{
                             fontFamily: fontMono,
                             fontSize: 11.5,
@@ -130,6 +149,16 @@ export function ProjectsPage() {
                     </div>
                     <div style={{ fontSize: 10.5, color: color.textMeta }}>{project.headCount ? `${project.headCount} people` : "unstaffed"}</div>
                   </div>
+                  {isOwner && project.state === "Tentative" && (
+                    <button
+                      title="Confirm project — its work starts counting toward capacity"
+                      onClick={() => handleConfirm(project)}
+                      disabled={confirmProject.isPending}
+                      style={{ height: 26, padding: "0 8px", border: `1px solid ${color.controlBorder}`, borderRadius: 7, background: color.surface, color: color.infoText, fontSize: 10, fontWeight: 600, textTransform: "uppercase", cursor: "pointer" }}
+                    >
+                      Confirm
+                    </button>
+                  )}
                   {isOwner && (
                     <button
                       title="Mark complete"

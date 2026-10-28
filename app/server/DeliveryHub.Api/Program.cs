@@ -78,7 +78,7 @@ const string DevCorsPolicy = "DevCors";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(DevCorsPolicy, policy =>
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "https://applabhtml.z6.web.core.windows.net")
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "https://applabhtml.z6.web.core.windows.net")
               .AllowAnyHeader()
               .AllowAnyMethod());
 });

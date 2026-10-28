@@ -7,6 +7,7 @@ import { useCompletedProjects, useCompletedStats, useReopenProject } from "../fe
 import { useToast } from "../components/ToastProvider";
 import { useAuth } from "../auth/AuthContext";
 import { color, fontMono, radius } from "../theme";
+import { completedProjectDescription } from "../lib/projectDescription";
 
 export function CompletedPage() {
   const { data: stats } = useCompletedStats();
@@ -82,8 +83,8 @@ export function CompletedPage() {
                     {new Date(project.completedOn).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}
                   </span>
                 </div>
-                <div style={{ fontSize: 11.5, color: color.textTertiary, marginTop: 2 }}>
-                  {project.owner} · {project.tech.join(", ")}
+                <div style={{ fontSize: 11.5, color: color.textTertiary, marginTop: 2, overflowWrap: "anywhere" }}>
+                  {project.owner && project.owner !== "—" ? `${project.owner} · ` : ""}{completedProjectDescription(project)}
                 </div>
               </div>
               {isOwner && (
